@@ -54,6 +54,11 @@ function calculateLagna(date, location, options = {}) {
         degree: (0, utils_1.getRashiDegree)(ascendant),
         houses: houses.slice(0, 12),
         ayanamsaValue,
+        // Legacy compatibility fields
+        lagna: ascendant,
+        lagnaRasi: (0, utils_1.getRashi)(ascendant),
+        lagnaDegree: (0, utils_1.getRashiDegree)(ascendant),
+        julianDay: jd,
     };
 }
 /**

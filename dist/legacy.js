@@ -43,6 +43,28 @@ function createSwephCalculator() {
         async calculateMoonTimes(date, latitude, longitude, timeZoneOffset) {
             return (0, index_1.calculateMoonData)(date, { latitude, longitude, timezone: timeZoneOffset });
         },
+        async calculatePlanetRiseSetTimes(date, planetId, latitude, longitude, timeZoneOffset) {
+            return (0, index_1.calculatePlanetRiseSetTimes)(planetId, date, { latitude, longitude, timezone: timeZoneOffset });
+        },
+        async calculateMoonPosition(date, timeZoneOffset, ayanamsa = 1) {
+            const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
+            const result = await (0, index_1.calculateSinglePlanet)(1, utcDate, { ayanamsa });
+            if (!result)
+                throw new Error('Failed to calculate Moon position');
+            return result;
+        },
+        async calculateMoonPhase(date) {
+            return (0, index_1.calculateMoonPhase)(date);
+        },
+        async calculateMoonTransit(date, latitude, longitude, timeZoneOffset) {
+            return (0, index_1.calculateMoonData)(date, { latitude, longitude, timezone: timeZoneOffset });
+        },
+        async calculateNextMoonPhases(date) {
+            return (0, index_1.calculateNextMoonPhases)(date);
+        },
+        async calculateDailySunPath(date, latitude, longitude, timeZoneOffset) {
+            return (0, index_1.calculateSunTimes)(date, { latitude, longitude, timezone: timeZoneOffset });
+        }
     };
 }
 /**

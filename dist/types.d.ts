@@ -38,6 +38,8 @@ export interface Planet {
     houseNumber?: number;
     /** Whether planet is retrograde */
     isRetrograde: boolean;
+    /** Legacy alias for longitude */
+    totalDegree?: number;
 }
 /**
  * Lagna (Ascendant) and house cusp information
@@ -53,6 +55,14 @@ export interface LagnaInfo {
     houses: number[];
     /** Ayanamsa value used in calculation */
     ayanamsaValue: number;
+    /** Legacy alias for longitude */
+    lagna?: number;
+    /** Legacy alias for rasi */
+    lagnaRasi?: number;
+    /** Legacy alias for degree */
+    lagnaDegree?: number;
+    /** Julian Day of calculation */
+    julianDay?: number;
 }
 /**
  * Sun times and related data
@@ -74,6 +84,10 @@ export interface SunTimes {
     nauticalTwilightStart: Date | null;
     /** Nautical twilight end */
     nauticalTwilightEnd: Date | null;
+    /** Astronomical twilight start (sun 18° below horizon) */
+    astronomicalTwilightStart?: Date | null;
+    /** Astronomical twilight end */
+    astronomicalTwilightEnd?: Date | null;
 }
 /**
  * Moon data including rise/set and phase

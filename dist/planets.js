@@ -5,6 +5,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.calculatePlanets = calculatePlanets;
 exports.calculateSinglePlanet = calculateSinglePlanet;
+exports.calculatePlanetRiseSetTimes = calculatePlanetRiseSetTimes;
 const constants_1 = require("./constants");
 const utils_1 = require("./utils");
 /**
@@ -43,6 +44,7 @@ function calculatePlanets(date, options = {}) {
                     rasi: (0, utils_1.getRashi)(ketuLongitude),
                     rasiDegree: (0, utils_1.getRashiDegree)(ketuLongitude),
                     isRetrograde: true, // Ketu is always retrograde
+                    totalDegree: ketuLongitude, // Legacy compatibility
                 });
             }
             continue;
@@ -89,6 +91,7 @@ function calculatePlanets(date, options = {}) {
                 rasi: (0, utils_1.getRashi)(normalizedLong),
                 rasiDegree: (0, utils_1.getRashiDegree)(normalizedLong),
                 isRetrograde: (0, utils_1.isRetrograde)(speed),
+                totalDegree: normalizedLong, // Legacy compatibility
             });
         }
     }
@@ -143,6 +146,37 @@ function calculateSinglePlanet(planetId, date, options = {}) {
         rasi: (0, utils_1.getRashi)(normalizedLong),
         rasiDegree: (0, utils_1.getRashiDegree)(normalizedLong),
         isRetrograde: (0, utils_1.isRetrograde)(speed),
+        totalDegree: normalizedLong, // Legacy compatibility
     };
+}
+/**
+ * Calculate rise and set times for a planet
+ * @param planetId - Swiss Ephemeris planet ID
+ * @param date - Date for calculation
+ * @param location - Geographic location
+ * @returns Rise and set times
+ */
+function calculatePlanetRiseSetTimes(planetId, date, location) {
+    (0, utils_1.initializeSweph)();
+    const sweph = (0, utils_1.getNativeModule)();
+    const timezone = location.timezone ?? 0;
+    // Convert to UTC midnight
+    const utcDate = new Date(date.getTime() - timezone * 60 * 60 * 1000);
+    utcDate.setUTCHours(0, 0, 0, 0);
+    const jd = (0, utils_1.dateToJulian)(utcDate);
+    const geopos = [location.longitude, location.latitude, 0];
+    const CALC_RISE = sweph.SE_CALC_RISE || 1;
+    const CALC_SET = sweph.SE_CALC_SET || 2;
+    // Calculate rise
+    const riseResult = sweph.swe_rise_trans(jd, planetId, 0, CALC_RISE, geopos, 0, 0);
+    // Calculate set
+    const setResult = sweph.swe_rise_trans(jd, planetId, 0, CALC_SET, geopos, 0, 0);
+    const rise = riseResult?.dret?.[0]
+        ? (0, utils_1.julianToDate)(riseResult.dret[0], timezone)
+        : null;
+    const set = setResult?.dret?.[0]
+        ? (0, utils_1.julianToDate)(setResult.dret[0], timezone)
+        : null;
+    return { rise, set };
 }
 //# sourceMappingURL=planets.js.map

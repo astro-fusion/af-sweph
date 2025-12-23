@@ -20,13 +20,14 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateKundaliPageData = exports.registerAdapter = exports.initializeSweph = exports.createNodeAdapter = exports.createSwephAdapter = exports.createPlanetaryCalculator = exports.createSwephCalculator = exports.VEDIC_PLANET_ORDER = exports.NAKSHATRAS = exports.RASHIS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.PLANETS = exports.julianToDate = exports.dateToJulian = exports.getJulianDay = exports.setEphemerisPath = exports.getAyanamsa = exports.calculateNextMoonPhases = exports.calculateMoonPhase = exports.calculateMoonData = exports.calculateSolarNoon = exports.calculateSunTimes = exports.calculateHouses = exports.calculateLagna = exports.calculateSinglePlanet = exports.calculatePlanets = void 0;
+exports.calculateKundaliPageData = exports.registerAdapter = exports.initializeSweph = exports.createNodeAdapter = exports.createSwephAdapter = exports.createPlanetaryCalculator = exports.createSwephCalculator = exports.VEDIC_PLANET_ORDER = exports.NAKSHATRAS = exports.RASHIS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.PLANETS = exports.julianToDate = exports.dateToJulian = exports.getJulianDay = exports.setEphemerisPath = exports.getAyanamsa = exports.calculateNextMoonPhases = exports.calculateMoonPhase = exports.calculateMoonData = exports.calculateSolarNoon = exports.calculateSunTimes = exports.calculateHouses = exports.calculateLagna = exports.calculatePlanetRiseSetTimes = exports.calculateSinglePlanet = exports.calculatePlanets = void 0;
 // Types
 __exportStar(require("./types"), exports);
 // Core calculation functions
 var planets_1 = require("./planets");
 Object.defineProperty(exports, "calculatePlanets", { enumerable: true, get: function () { return planets_1.calculatePlanets; } });
 Object.defineProperty(exports, "calculateSinglePlanet", { enumerable: true, get: function () { return planets_1.calculateSinglePlanet; } });
+Object.defineProperty(exports, "calculatePlanetRiseSetTimes", { enumerable: true, get: function () { return planets_1.calculatePlanetRiseSetTimes; } });
 var houses_1 = require("./houses");
 Object.defineProperty(exports, "calculateLagna", { enumerable: true, get: function () { return houses_1.calculateLagna; } });
 Object.defineProperty(exports, "calculateHouses", { enumerable: true, get: function () { return houses_1.calculateHouses; } });

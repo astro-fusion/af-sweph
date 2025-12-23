@@ -4,7 +4,7 @@
  * This file provides backwards-compatible exports for code migrating
  * from the old @astrofusion/sweph-* packages.
  */
-import type { Planet, LagnaInfo, SunTimes, MoonData, GeoLocation, CalculationOptions } from './types';
+import type { Planet, LagnaInfo, SunTimes, MoonData, GeoLocation, CalculationOptions, NextMoonPhases } from './types';
 /**
  * @deprecated Use `Planet` from @af/sweph instead
  */
@@ -30,6 +30,20 @@ export interface PlanetaryCalculationProvider {
     calculateLagna(date: Date, timeZoneOffset: number, latitude: number, longitude: number, ayanamsa?: number): Promise<LagnaInfo>;
     calculateSunTimes(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<SunTimes>;
     calculateMoonTimes(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<MoonData>;
+    calculatePlanetRiseSetTimes(date: Date, planetId: number, latitude: number, longitude: number, timeZoneOffset: number): Promise<{
+        rise: Date | null;
+        set: Date | null;
+    }>;
+    calculateMoonPosition(date: Date, timeZoneOffset: number, ayanamsa?: number): Promise<Planet>;
+    calculateMoonPhase(date: Date): Promise<{
+        phase: number;
+        illumination: number;
+        age: number;
+        phaseName: string;
+    }>;
+    calculateMoonTransit(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<MoonData>;
+    calculateNextMoonPhases(date: Date): Promise<NextMoonPhases>;
+    calculateDailySunPath(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<SunTimes>;
 }
 /**
  * SwephAdapter interface alias for legacy compatibility

@@ -57,6 +57,7 @@ export type LegacyLagnaInfo = LagnaInfo;
  * PlanetaryCalculationProvider interface for legacy compatibility
  * @deprecated Use the direct calculation functions from @af/sweph instead
  */
+export interface PlanetaryCalculationProvider {
   calculateAllPlanetPositions(
     date: Date,
     timeZoneOffset: number,

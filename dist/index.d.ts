@@ -5,7 +5,7 @@
  * All public APIs are exported from here.
  */
 export * from './types';
-export { calculatePlanets, calculateSinglePlanet, } from './planets';
+export { calculatePlanets, calculateSinglePlanet, calculatePlanetRiseSetTimes, } from './planets';
 export { calculateLagna, calculateHouses, } from './houses';
 export { calculateSunTimes, calculateSolarNoon, } from './sun';
 export { calculateMoonData, calculateMoonPhase, calculateNextMoonPhases, } from './moon';
