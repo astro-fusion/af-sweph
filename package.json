@@ -1,5 +1,5 @@
 {
-  "name": "@AstroFusion/sweph",
+  "name": "@af/sweph",
   "version": "0.1.0",
   "description": "Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries",
   "main": "dist/index.js",
