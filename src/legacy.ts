@@ -88,8 +88,8 @@ export interface PlanetaryCalculationProvider {
   ): Promise<MoonData>;
 
   calculatePlanetRiseSetTimes(
-    date: Date,
     planetId: number,
+    date: Date,
     latitude: number,
     longitude: number,
     timeZoneOffset: number
@@ -137,7 +137,7 @@ export type SwephAdapter = PlanetaryCalculationProvider;
  * Creates a PlanetaryCalculationProvider instance
  * @deprecated Use the direct calculation functions from @af/sweph instead
  */
-export function createPlanetaryCalculator(): PlanetaryCalculationProvider {
+export function createPlanetaryCalculator(_options?: any): PlanetaryCalculationProvider {
   return createSwephCalculator();
 }
 
@@ -186,8 +186,8 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
     },
 
     async calculatePlanetRiseSetTimes(
-      date: Date,
       planetId: number,
+      date: Date,
       latitude: number,
       longitude: number,
       timeZoneOffset: number

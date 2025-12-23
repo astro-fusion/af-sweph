@@ -20,7 +20,7 @@ const utils_1 = require("./utils");
  * Creates a PlanetaryCalculationProvider instance
  * @deprecated Use the direct calculation functions from @af/sweph instead
  */
-function createPlanetaryCalculator() {
+function createPlanetaryCalculator(_options) {
     return createSwephCalculator();
 }
 /**
@@ -43,7 +43,7 @@ function createSwephCalculator() {
         async calculateMoonTimes(date, latitude, longitude, timeZoneOffset) {
             return (0, index_1.calculateMoonData)(date, { latitude, longitude, timezone: timeZoneOffset });
         },
-        async calculatePlanetRiseSetTimes(date, planetId, latitude, longitude, timeZoneOffset) {
+        async calculatePlanetRiseSetTimes(planetId, date, latitude, longitude, timeZoneOffset) {
             return (0, index_1.calculatePlanetRiseSetTimes)(planetId, date, { latitude, longitude, timezone: timeZoneOffset });
         },
         async calculateMoonPosition(date, latitude, longitude, timeZoneOffset) {

@@ -30,7 +30,7 @@ export interface PlanetaryCalculationProvider {
     calculateLagna(date: Date, timeZoneOffset: number, latitude: number, longitude: number, ayanamsa?: number): Promise<LagnaInfo>;
     calculateSunTimes(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<SunTimes>;
     calculateMoonTimes(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<MoonData>;
-    calculatePlanetRiseSetTimes(date: Date, planetId: number, latitude: number, longitude: number, timeZoneOffset: number): Promise<{
+    calculatePlanetRiseSetTimes(planetId: number, date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<{
         rise: Date | null;
         set: Date | null;
     }>;
@@ -62,7 +62,7 @@ export type SwephAdapter = PlanetaryCalculationProvider;
  * Creates a PlanetaryCalculationProvider instance
  * @deprecated Use the direct calculation functions from @af/sweph instead
  */
-export declare function createPlanetaryCalculator(): PlanetaryCalculationProvider;
+export declare function createPlanetaryCalculator(_options?: any): PlanetaryCalculationProvider;
 /**
  * Creates a SwephCalculator instance (legacy compatibility)
  * @deprecated Use the direct calculation functions from @af/sweph instead
