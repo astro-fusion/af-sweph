@@ -179,3 +179,95 @@ export function calculateSolarNoon(
     altitude: Math.max(0, altitude),
   };
 }
+
+/**
+ * Calculate Azimuth and Altitude (Helper)
+ */
+function calculateAzAlt(
+  sweph: any,
+  jd: number,
+  location: GeoLocation,
+  planetPos: { longitude: number; latitude: number; distance: number }
+): { azimuth: number; altitude: number } {
+  // swe_azalt expects: tjd_ut, calc_flag, geopos, atpress, attemp, xin
+  // xin: array of 3 doubles: longitude, latitude, distance
+  const geopos = [location.longitude, location.latitude, 0];
+  const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
+  
+  const result = sweph.swe_azalt(
+    jd,
+    sweph.SE_EQU2HOR, // Flag to convert equatorial to horizontal
+    geopos,
+    0, // Pressure (0 = default 1013.25 mbar)
+    10, // Temperature (10C)
+    xin
+  );
+  
+  return {
+    azimuth: result.azimuth || result[0] || 0,
+    altitude: result.altitude || result[1] || 0
+  };
+}
+
+/**
+ * Calculate daily sun path (position every hour)
+ * @param date - Date for calculation
+ * @param location - Geographic location
+ * @returns Array of sun positions
+ */
+export function calculateSunPath(
+  date: Date,
+  location: GeoLocation
+): { time: Date; azimuth: number; altitude: number }[] {
+  initializeSweph();
+  const sweph = getNativeModule();
+  
+  const timezone = location.timezone ?? 0;
+  
+  // Start from midnight
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const path: { time: Date; azimuth: number; altitude: number }[] = [];
+  
+  // Calculate for every hour of the day (0 to 23)
+  for (let i = 0; i < 24; i++) {
+    const time = new Date(startOfDay.getTime() + i * 60 * 60 * 1000);
+    
+    // Convert to UTC for calculation
+    const utcTime = new Date(time.getTime() - timezone * 60 * 60 * 1000);
+    const jd = dateToJulian(utcTime);
+    
+    // Calculate Sun position
+    // SEFLG_EQUATORIAL | SEFLG_SPEED
+    const flags = (sweph.SEFLG_EQUATORIAL || 0x0800) | (sweph.SEFLG_SPEED || 0x100);
+    
+    const result = sweph.swe_calc_ut(jd, PlanetId.SUN, flags);
+    
+    if (result) {
+        let longitude = 0;
+        let latitude = 0;
+        let distance = 0;
+        
+        if (Array.isArray(result)) {
+            longitude = result[0] || 0;
+            latitude = result[1] || 0;
+            distance = result[2] || 0;
+        } else if (result.xx) {
+            longitude = result.xx[0] || 0;
+            latitude = result.xx[1] || 0;
+            distance = result.xx[2] || 0;
+        }
+        
+        const azAlt = calculateAzAlt(sweph, jd, location, { longitude, latitude, distance });
+        
+        path.push({
+            time,
+            azimuth: azAlt.azimuth,
+            altitude: azAlt.altitude
+        });
+    }
+  }
+  
+  return path;
+}

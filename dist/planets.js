@@ -9,6 +9,45 @@ exports.calculatePlanetRiseSetTimes = calculatePlanetRiseSetTimes;
 const constants_1 = require("./constants");
 const utils_1 = require("./utils");
 /**
+ * Calculate Azimuth and Altitude
+ */
+function calculateAzAlt(sweph, jd, location, planetPos) {
+    // swe_azalt expects: tjd_ut, calc_flag, geopos, atpress, attemp, xin
+    // xin: array of 3 doubles: longitude, latitude, distance
+    const geopos = [location.longitude, location.latitude, 0];
+    const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
+    const result = sweph.swe_azalt(jd, sweph.SE_EQU2HOR, // Flag to convert equatorial to horizontal
+    geopos, 0, // Pressure (0 = default 1013.25 mbar)
+    10, // Temperature (10C)
+    xin);
+    return {
+        azimuth: result.azimuth || result[0] || 0,
+        altitude: result.altitude || result[1] || 0
+    };
+}
+/**
+ * Check if planet is combust based on distance from Sun
+ */
+function checkCombustion(planetId, planetLong, sunLong) {
+    if (planetId === 'Sun' || planetId === 'Rahu' || planetId === 'Ketu')
+        return false;
+    // Calculate distance
+    let diff = Math.abs(planetLong - sunLong);
+    if (diff > 180)
+        diff = 360 - diff;
+    // Combustion limits (approximate standard values)
+    const limits = {
+        'Moon': 12,
+        'Mars': 17,
+        'Mercury': 14,
+        'Jupiter': 11,
+        'Venus': 10,
+        'Saturn': 15
+    };
+    const limit = limits[planetId] || 10;
+    return diff <= limit;
+}
+/**
  * Calculate positions for all 9 Vedic planets
  * @param date - Date for calculation
  * @param options - Calculation options (ayanamsa, etc.)
@@ -17,7 +56,7 @@ const utils_1 = require("./utils");
 function calculatePlanets(date, options = {}) {
     (0, utils_1.initializeSweph)();
     const sweph = (0, utils_1.getNativeModule)();
-    const { ayanamsa = 1, includeSpeed = true } = options;
+    const { ayanamsa = 1, includeSpeed = true, location } = options;
     // Set sidereal mode with specified ayanamsa
     sweph.swe_set_sid_mode(ayanamsa, 0, 0);
     const jd = (0, utils_1.dateToJulian)(date);
@@ -28,35 +67,18 @@ function calculatePlanets(date, options = {}) {
         flags |= constants_1.CALC_FLAGS.SPEED;
     let rahuLongitude = null;
     let rahuSpeed = null;
+    let sunLongitude = null;
+    // First pass: Calculate positions
+    const calculatedPlanets = [];
     for (const planetDef of constants_1.VEDIC_PLANET_ORDER) {
-        // Ketu is calculated as 180° from Rahu
-        if (planetDef.name === 'Ketu') {
-            if (rahuLongitude !== null) {
-                const ketuLongitude = (0, utils_1.normalizeLongitude)(rahuLongitude + 180);
-                const ketuSpeed = rahuSpeed !== null ? -rahuSpeed : 0;
-                planets.push({
-                    id: 'ketu',
-                    name: 'Ketu',
-                    longitude: ketuLongitude,
-                    latitude: 0,
-                    distance: 0,
-                    speed: ketuSpeed,
-                    rasi: (0, utils_1.getRashi)(ketuLongitude),
-                    rasiDegree: (0, utils_1.getRashiDegree)(ketuLongitude),
-                    isRetrograde: true, // Ketu is always retrograde
-                    totalDegree: ketuLongitude, // Legacy compatibility
-                });
-            }
+        if (planetDef.name === 'Ketu')
             continue;
-        }
-        // Calculate planet position
         const result = sweph.swe_calc_ut(jd, planetDef.id, flags);
         if (result && typeof result === 'object') {
             let longitude = 0;
             let latitude = 0;
             let distance = 0;
             let speed = 0;
-            // Handle different result formats from swisseph-v2
             if (Array.isArray(result)) {
                 longitude = result[0] || 0;
                 latitude = result[1] || 0;
@@ -76,24 +98,76 @@ function calculatePlanets(date, options = {}) {
                 speed = result.longitudeSpeed || result.speed || 0;
             }
             const normalizedLong = (0, utils_1.normalizeLongitude)(longitude);
-            // Store Rahu's position for Ketu calculation
+            if (planetDef.name === 'Sun') {
+                sunLongitude = normalizedLong;
+            }
             if (planetDef.name === 'Rahu') {
                 rahuLongitude = normalizedLong;
                 rahuSpeed = speed;
             }
-            planets.push({
-                id: planetDef.name.toLowerCase(),
-                name: planetDef.name,
+            calculatedPlanets.push({
+                def: planetDef,
                 longitude: normalizedLong,
                 latitude,
                 distance,
-                speed,
-                rasi: (0, utils_1.getRashi)(normalizedLong),
-                rasiDegree: (0, utils_1.getRashiDegree)(normalizedLong),
-                isRetrograde: (0, utils_1.isRetrograde)(speed),
-                totalDegree: normalizedLong, // Legacy compatibility
+                speed
             });
         }
+    }
+    // Process results including Ketu
+    for (const p of calculatedPlanets) {
+        let azAlt = {};
+        if (location) {
+            azAlt = calculateAzAlt(sweph, jd, location, {
+                longitude: p.longitude,
+                latitude: p.latitude,
+                distance: p.distance
+            });
+        }
+        const isCombust = sunLongitude !== null
+            ? checkCombustion(p.def.name, p.longitude, sunLongitude)
+            : false;
+        planets.push({
+            id: p.def.name.toLowerCase(),
+            name: p.def.name,
+            longitude: p.longitude,
+            latitude: p.latitude,
+            distance: p.distance,
+            speed: p.speed,
+            rasi: (0, utils_1.getRashi)(p.longitude),
+            rasiDegree: (0, utils_1.getRashiDegree)(p.longitude),
+            isRetrograde: (0, utils_1.isRetrograde)(p.speed),
+            totalDegree: p.longitude,
+            ...azAlt,
+            isCombust
+        });
+    }
+    // Add Ketu
+    if (rahuLongitude !== null) {
+        const ketuLongitude = (0, utils_1.normalizeLongitude)(rahuLongitude + 180);
+        const ketuSpeed = rahuSpeed !== null ? -rahuSpeed : 0;
+        let azAlt = {};
+        if (location) {
+            azAlt = calculateAzAlt(sweph, jd, location, {
+                longitude: ketuLongitude,
+                latitude: 0,
+                distance: 0
+            });
+        }
+        planets.push({
+            id: 'ketu',
+            name: 'Ketu',
+            longitude: ketuLongitude,
+            latitude: 0,
+            distance: 0,
+            speed: ketuSpeed,
+            rasi: (0, utils_1.getRashi)(ketuLongitude),
+            rasiDegree: (0, utils_1.getRashiDegree)(ketuLongitude),
+            isRetrograde: true,
+            totalDegree: ketuLongitude,
+            ...azAlt,
+            isCombust: false
+        });
     }
     return planets;
 }
@@ -107,7 +181,7 @@ function calculatePlanets(date, options = {}) {
 function calculateSinglePlanet(planetId, date, options = {}) {
     (0, utils_1.initializeSweph)();
     const sweph = (0, utils_1.getNativeModule)();
-    const { ayanamsa = 1, includeSpeed = true } = options;
+    const { ayanamsa = 1, includeSpeed = true, location } = options;
     sweph.swe_set_sid_mode(ayanamsa, 0, 0);
     const jd = (0, utils_1.dateToJulian)(date);
     let flags = constants_1.CALC_FLAGS.SIDEREAL | constants_1.CALC_FLAGS.SWIEPH;
@@ -136,6 +210,25 @@ function calculateSinglePlanet(planetId, date, options = {}) {
     const normalizedLong = (0, utils_1.normalizeLongitude)(longitude);
     // Get planet name from sweph
     const planetName = sweph.swe_get_planet_name(planetId) || `Planet ${planetId}`;
+    // Az/Alt
+    let azAlt = {};
+    if (location) {
+        azAlt = calculateAzAlt(sweph, jd, location, {
+            longitude: normalizedLong,
+            latitude,
+            distance
+        });
+    }
+    // Check combustion (requires Sun position if we're not Sun)
+    let isCombust = false;
+    if (planetId !== 0 && planetName !== 'Rahu' && planetName !== 'Ketu') { // 0 is Sun
+        // Calculate Sun position briefly for combustion check
+        const sunResult = sweph.swe_calc_ut(jd, 0, flags);
+        const sunLong = Array.isArray(sunResult) ? sunResult[0] : (sunResult.xx ? sunResult.xx[0] : 0);
+        if (sunLong !== undefined) {
+            isCombust = checkCombustion(planetName, normalizedLong, (0, utils_1.normalizeLongitude)(sunLong));
+        }
+    }
     return {
         id: planetId.toString(),
         name: planetName,
@@ -147,6 +240,8 @@ function calculateSinglePlanet(planetId, date, options = {}) {
         rasiDegree: (0, utils_1.getRashiDegree)(normalizedLong),
         isRetrograde: (0, utils_1.isRetrograde)(speed),
         totalDegree: normalizedLong, // Legacy compatibility
+        ...azAlt,
+        isCombust
     };
 }
 /**

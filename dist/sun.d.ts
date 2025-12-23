@@ -16,4 +16,15 @@ export declare function calculateSunTimes(date: Date, location: GeoLocation): Su
  * @returns Solar noon time and sun altitude
  */
 export declare function calculateSolarNoon(date: Date, location: GeoLocation): SolarNoonResult;
+/**
+ * Calculate daily sun path (position every hour)
+ * @param date - Date for calculation
+ * @param location - Geographic location
+ * @returns Array of sun positions
+ */
+export declare function calculateSunPath(date: Date, location: GeoLocation): {
+    time: Date;
+    azimuth: number;
+    altitude: number;
+}[];
 //# sourceMappingURL=sun.d.ts.map

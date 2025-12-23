@@ -46,9 +46,13 @@ function createSwephCalculator() {
         async calculatePlanetRiseSetTimes(date, planetId, latitude, longitude, timeZoneOffset) {
             return (0, index_1.calculatePlanetRiseSetTimes)(planetId, date, { latitude, longitude, timezone: timeZoneOffset });
         },
-        async calculateMoonPosition(date, timeZoneOffset, ayanamsa = 1) {
+        async calculateMoonPosition(date, latitude, longitude, timeZoneOffset) {
+            // Calculate Moon (id 1) using implementation that supports Az/Alt
             const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
-            const result = await (0, index_1.calculateSinglePlanet)(1, utcDate, { ayanamsa });
+            const result = await (0, index_1.calculateSinglePlanet)(1, utcDate, {
+                ayanamsa: 1, // Default ayanamsa
+                location: { latitude, longitude, timezone: timeZoneOffset }
+            });
             if (!result)
                 throw new Error('Failed to calculate Moon position');
             return result;
@@ -63,7 +67,7 @@ function createSwephCalculator() {
             return (0, index_1.calculateNextMoonPhases)(date);
         },
         async calculateDailySunPath(date, latitude, longitude, timeZoneOffset) {
-            return (0, index_1.calculateSunTimes)(date, { latitude, longitude, timezone: timeZoneOffset });
+            return (0, index_1.calculateSunPath)(date, { latitude, longitude, timezone: timeZoneOffset });
         }
     };
 }

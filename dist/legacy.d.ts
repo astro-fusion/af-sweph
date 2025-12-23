@@ -34,7 +34,7 @@ export interface PlanetaryCalculationProvider {
         rise: Date | null;
         set: Date | null;
     }>;
-    calculateMoonPosition(date: Date, timeZoneOffset: number, ayanamsa?: number): Promise<Planet>;
+    calculateMoonPosition(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<Planet>;
     calculateMoonPhase(date: Date): Promise<{
         phase: number;
         illumination: number;
@@ -43,7 +43,11 @@ export interface PlanetaryCalculationProvider {
     }>;
     calculateMoonTransit(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<MoonData>;
     calculateNextMoonPhases(date: Date): Promise<NextMoonPhases>;
-    calculateDailySunPath(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<SunTimes>;
+    calculateDailySunPath(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<{
+        time: Date;
+        azimuth: number;
+        altitude: number;
+    }[]>;
 }
 /**
  * SwephAdapter interface alias for legacy compatibility

@@ -44,6 +44,12 @@ export interface Planet {
   isRetrograde: boolean;
   /** Legacy alias for longitude */
   totalDegree?: number;
+  /** Azimuth in degrees (Horizontal coordinate) */
+  azimuth?: number;
+  /** Altitude in degrees (Horizontal coordinate) */
+  altitude?: number;
+  /** Whether planet is combust (too close to Sun) */
+  isCombust?: boolean;
 }
 
 /**
@@ -172,6 +178,8 @@ export interface CalculationOptions {
   houseSystem?: string;
   /** Include speed/retrograde calculations */
   includeSpeed?: boolean;
+  /** Geographic location for topocentric/horizontal calculations */
+  location?: GeoLocation;
 }
 
 /**

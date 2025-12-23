@@ -11,6 +11,7 @@ import {
   calculatePlanetRiseSetTimes,
   calculateLagna,
   calculateSunTimes,
+  calculateSunPath,
   calculateMoonData,
   calculateMoonPhase,
   calculateNextMoonPhases,
@@ -96,8 +97,9 @@ export interface PlanetaryCalculationProvider {
 
   calculateMoonPosition(
     date: Date,
-    timeZoneOffset: number,
-    ayanamsa?: number
+    latitude: number,
+    longitude: number,
+    timeZoneOffset: number
   ): Promise<Planet>;
 
   calculateMoonPhase(
@@ -120,7 +122,7 @@ export interface PlanetaryCalculationProvider {
     latitude: number,
     longitude: number,
     timeZoneOffset: number
-  ): Promise<SunTimes>;
+  ): Promise<{ time: Date; azimuth: number; altitude: number }[]>;
 }
 
 /**
@@ -195,11 +197,16 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
 
     async calculateMoonPosition(
       date: Date,
-      timeZoneOffset: number,
-      ayanamsa: number = 1
+      latitude: number,
+      longitude: number,
+      timeZoneOffset: number
     ): Promise<Planet> {
+      // Calculate Moon (id 1) using implementation that supports Az/Alt
       const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
-      const result = await calculateSinglePlanet(1, utcDate, { ayanamsa });
+      const result = await calculateSinglePlanet(1, utcDate, { 
+        ayanamsa: 1, // Default ayanamsa
+        location: { latitude, longitude, timezone: timeZoneOffset }
+      });
       if (!result) throw new Error('Failed to calculate Moon position');
       return result;
     },
@@ -230,8 +237,8 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       latitude: number,
       longitude: number,
       timeZoneOffset: number
-    ): Promise<SunTimes> {
-        return calculateSunTimes(date, { latitude, longitude, timezone: timeZoneOffset });
+    ): Promise<{ time: Date; azimuth: number; altitude: number }[]> {
+        return calculateSunPath(date, { latitude, longitude, timezone: timeZoneOffset });
     }
   };
 }

@@ -7,7 +7,7 @@
 export * from './types';
 export { calculatePlanets, calculateSinglePlanet, calculatePlanetRiseSetTimes, } from './planets';
 export { calculateLagna, calculateHouses, } from './houses';
-export { calculateSunTimes, calculateSolarNoon, } from './sun';
+export { calculateSunTimes, calculateSolarNoon, calculateSunPath, } from './sun';
 export { calculateMoonData, calculateMoonPhase, calculateNextMoonPhases, } from './moon';
 export { getAyanamsa, setEphemerisPath, getJulianDay, dateToJulian, julianToDate, } from './utils';
 export { PLANETS, AYANAMSA, HOUSE_SYSTEMS, RASHIS, NAKSHATRAS, VEDIC_PLANET_ORDER, } from './constants';

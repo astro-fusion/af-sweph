@@ -23,6 +23,7 @@ export {
 export {
   calculateSunTimes,
   calculateSolarNoon,
+  calculateSunPath,
 } from './sun';
 
 export {
