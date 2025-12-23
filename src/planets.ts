@@ -2,12 +2,13 @@
  * Planet Calculations for @AstroFusion/sweph
  */
 
-import type { Planet, CalculationOptions } from './types';
+import type { Planet, CalculationOptions, GeoLocation } from './types';
 import { VEDIC_PLANET_ORDER, CALC_FLAGS, RASHIS } from './constants';
 import { 
   initializeSweph, 
   getNativeModule, 
   dateToJulian, 
+  julianToDate,
   normalizeLongitude, 
   getRashi, 
   getRashiDegree,
@@ -59,6 +60,7 @@ export function calculatePlanets(
           rasi: getRashi(ketuLongitude),
           rasiDegree: getRashiDegree(ketuLongitude),
           isRetrograde: true, // Ketu is always retrograde
+          totalDegree: ketuLongitude, // Legacy compatibility
         });
       }
       continue;
@@ -109,6 +111,7 @@ export function calculatePlanets(
         rasi: getRashi(normalizedLong),
         rasiDegree: getRashiDegree(normalizedLong),
         isRetrograde: isRetrograde(speed),
+        totalDegree: normalizedLong, // Legacy compatibility
       });
     }
   }
@@ -178,5 +181,65 @@ export function calculateSinglePlanet(
     rasi: getRashi(normalizedLong),
     rasiDegree: getRashiDegree(normalizedLong),
     isRetrograde: isRetrograde(speed),
+    totalDegree: normalizedLong, // Legacy compatibility
   };
+}
+
+/**
+ * Calculate rise and set times for a planet
+ * @param planetId - Swiss Ephemeris planet ID
+ * @param date - Date for calculation
+ * @param location - Geographic location
+ * @returns Rise and set times
+ */
+export function calculatePlanetRiseSetTimes(
+  planetId: number,
+  date: Date,
+  location: GeoLocation
+): { rise: Date | null; set: Date | null } {
+  initializeSweph();
+  const sweph = getNativeModule();
+  
+  const timezone = location.timezone ?? 0;
+  
+  // Convert to UTC midnight
+  const utcDate = new Date(date.getTime() - timezone * 60 * 60 * 1000);
+  utcDate.setUTCHours(0, 0, 0, 0);
+  const jd = dateToJulian(utcDate);
+  
+  const geopos = [location.longitude, location.latitude, 0];
+  const CALC_RISE = sweph.SE_CALC_RISE || 1;
+  const CALC_SET = sweph.SE_CALC_SET || 2;
+  
+  // Calculate rise
+  const riseResult = sweph.swe_rise_trans(
+    jd,
+    planetId,
+    0,
+    CALC_RISE,
+    geopos,
+    0,
+    0
+  );
+  
+  // Calculate set
+  const setResult = sweph.swe_rise_trans(
+    jd,
+    planetId,
+    0,
+    CALC_SET,
+    geopos,
+    0,
+    0
+  );
+  
+  const rise = riseResult?.dret?.[0]
+    ? julianToDate(riseResult.dret[0], timezone)
+    : null;
+    
+  const set = setResult?.dret?.[0]
+    ? julianToDate(setResult.dret[0], timezone)
+    : null;
+    
+  return { rise, set };
 }

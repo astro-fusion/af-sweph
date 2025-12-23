@@ -77,6 +77,11 @@ export function calculateLagna(
     degree: getRashiDegree(ascendant),
     houses: houses.slice(0, 12),
     ayanamsaValue,
+    // Legacy compatibility fields
+    lagna: ascendant,
+    lagnaRasi: getRashi(ascendant),
+    lagnaDegree: getRashiDegree(ascendant),
+    julianDay: jd,
   };
 }
 
