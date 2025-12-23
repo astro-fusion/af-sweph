@@ -57,11 +57,17 @@ function createSwephCalculator() {
                 throw new Error('Failed to calculate Moon position');
             return result;
         },
+        async calculateMoonTransit(date, latitude, longitude, timeZoneOffset) {
+            const result = (0, index_1.calculatePlanetRiseSetTimes)(1, // Moon
+            date, { latitude, longitude, timezone: timeZoneOffset });
+            return {
+                transit: result.transit,
+                altitude: result.transitAltitude,
+                distance: result.transitDistance
+            };
+        },
         async calculateMoonPhase(date) {
             return (0, index_1.calculateMoonPhase)(date);
-        },
-        async calculateMoonTransit(date, latitude, longitude, timeZoneOffset) {
-            return (0, index_1.calculateMoonData)(date, { latitude, longitude, timezone: timeZoneOffset });
         },
         async calculateNextMoonPhases(date) {
             return (0, index_1.calculateNextMoonPhases)(date);

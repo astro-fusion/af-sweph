@@ -27,5 +27,8 @@ export declare function calculateSinglePlanet(planetId: number, date: Date, opti
 export declare function calculatePlanetRiseSetTimes(planetId: number, date: Date, location: GeoLocation): {
     rise: Date | null;
     set: Date | null;
+    transit: Date | null;
+    transitAltitude: number;
+    transitDistance: number;
 };
 //# sourceMappingURL=planets.d.ts.map

@@ -111,7 +111,7 @@ export interface PlanetaryCalculationProvider {
     latitude: number,
     longitude: number,
     timeZoneOffset: number
-  ): Promise<MoonData>;
+  ): Promise<{ transit: Date | null; altitude: number; distance: number }>;
 
   calculateNextMoonPhases(
     date: Date
@@ -211,20 +211,31 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       return result;
     },
 
+    async calculateMoonTransit(
+      date: Date,
+      latitude: number,
+      longitude: number,
+      timeZoneOffset: number
+    ): Promise<{ transit: Date | null; altitude: number; distance: number }> {
+        const result = calculatePlanetRiseSetTimes(
+            1, // Moon
+            date,
+            { latitude, longitude, timezone: timeZoneOffset }
+        );
+        return {
+            transit: result.transit,
+            altitude: result.transitAltitude,
+            distance: result.transitDistance
+        };
+    },
+
     async calculateMoonPhase(
       date: Date
     ): Promise<{ phase: number; illumination: number; age: number; phaseName: string }> {
       return calculateMoonPhase(date);
     },
 
-    async calculateMoonTransit(
-      date: Date,
-      latitude: number,
-      longitude: number,
-      timeZoneOffset: number
-    ): Promise<MoonData> {
-      return calculateMoonData(date, { latitude, longitude, timezone: timeZoneOffset });
-    },
+
 
     async calculateNextMoonPhases(
       date: Date

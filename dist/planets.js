@@ -262,16 +262,48 @@ function calculatePlanetRiseSetTimes(planetId, date, location) {
     const geopos = [location.longitude, location.latitude, 0];
     const CALC_RISE = sweph.SE_CALC_RISE || 1;
     const CALC_SET = sweph.SE_CALC_SET || 2;
+    const CALC_TRANSIT = sweph.SE_CALC_MTRANSIT || 4; // Meridian transit
     // Calculate rise
     const riseResult = sweph.swe_rise_trans(jd, planetId, 0, CALC_RISE, geopos, 0, 0);
     // Calculate set
     const setResult = sweph.swe_rise_trans(jd, planetId, 0, CALC_SET, geopos, 0, 0);
+    // Calculate transit
+    const transitResult = sweph.swe_rise_trans(jd, planetId, 0, CALC_TRANSIT, geopos, 0, 0);
     const rise = riseResult?.dret?.[0]
         ? (0, utils_1.julianToDate)(riseResult.dret[0], timezone)
         : null;
     const set = setResult?.dret?.[0]
         ? (0, utils_1.julianToDate)(setResult.dret[0], timezone)
         : null;
-    return { rise, set };
+    const transit = transitResult?.dret?.[0]
+        ? (0, utils_1.julianToDate)(transitResult.dret[0], timezone)
+        : null;
+    // Calculate altitude at transit (if transit exists)
+    let transitAltitude = 0;
+    let transitDistance = 0;
+    if (transit) {
+        // Calculate position at transit time to get altitude/distance
+        // Need to convert transit time (which is local date object) back to UTC JD
+        const transitUtc = new Date(transit.getTime() - timezone * 60 * 60 * 1000);
+        const transitJd = (0, utils_1.dateToJulian)(transitUtc);
+        // Get equatorial position for declination/distance
+        const flags = constants_1.CALC_FLAGS.SIDEREAL | constants_1.CALC_FLAGS.SWIEPH | constants_1.CALC_FLAGS.SPEED | (sweph.SEFLG_EQUATORIAL || 0x0800);
+        const pos = sweph.swe_calc_ut(transitJd, planetId, flags);
+        if (pos) {
+            let declination = 0;
+            if (Array.isArray(pos)) {
+                declination = pos[1] || 0;
+                transitDistance = pos[2] || 0;
+            }
+            else if (pos.xx) {
+                declination = pos.xx[1] || 0;
+                transitDistance = pos.xx[2] || 0;
+            }
+            // Altitude at meridian = 90 - |lat - declination|
+            // This is approximate but standard for meridian transit
+            transitAltitude = 90 - Math.abs(location.latitude - declination);
+        }
+    }
+    return { rise, set, transit, transitAltitude, transitDistance };
 }
 //# sourceMappingURL=planets.js.map

@@ -41,7 +41,11 @@ export interface PlanetaryCalculationProvider {
         age: number;
         phaseName: string;
     }>;
-    calculateMoonTransit(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<MoonData>;
+    calculateMoonTransit(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<{
+        transit: Date | null;
+        altitude: number;
+        distance: number;
+    }>;
     calculateNextMoonPhases(date: Date): Promise<NextMoonPhases>;
     calculateDailySunPath(date: Date, latitude: number, longitude: number, timeZoneOffset: number): Promise<{
         time: Date;
