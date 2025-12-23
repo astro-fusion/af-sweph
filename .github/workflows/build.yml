@@ -1,0 +1,78 @@
+name: Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Build and test on multiple platforms
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18, 20, 22]
+        include:
+          # ARM builds for macOS
+          - os: macos-14  # M1/ARM64
+            node: 20
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build TypeScript
+        run: npm run build
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Build prebuild
+        run: npm run prebuild
+      
+      - name: Upload prebuild
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-${{ matrix.os }}-node${{ matrix.node }}
+          path: prebuilds/
+          if-no-files-found: warn
+
+  # Consolidate all prebuilds into one artifact
+  consolidate-prebuilds:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v4
+        with:
+          path: prebuilds-all
+          pattern: prebuild-*
+      
+      - name: Consolidate prebuilds
+        run: |
+          mkdir -p prebuilds
+          for dir in prebuilds-all/*/; do
+            cp -r "$dir"* prebuilds/ 2>/dev/null || true
+          done
+          ls -la prebuilds/
+      
+      - name: Upload consolidated prebuilds
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuilds-all-platforms
+          path: prebuilds/

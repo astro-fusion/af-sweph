@@ -1,0 +1,71 @@
+{
+  "name": "@AstroFusion/sweph",
+  "version": "0.1.0",
+  "description": "Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "prebuilds",
+    "ephe",
+    "binding.gyp",
+    "native"
+  ],
+  "scripts": {
+    "build": "tsc && npm run build:esm",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "prebuild": "prebuildify --napi --strip",
+    "prebuild:all": "prebuildify-cross -t 18.0.0 -t 20.0.0 -t 22.0.0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "swiss-ephemeris",
+    "sweph",
+    "astrology",
+    "vedic",
+    "jyotish",
+    "kundali",
+    "horoscope",
+    "planets",
+    "ephemeris"
+  ],
+  "author": "AstroFusion <contact@astrofusion.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/astro-fusion/astrofusion-sweph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/astro-fusion/astrofusion-sweph/issues"
+  },
+  "homepage": "https://github.com/astro-fusion/astrofusion-sweph#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "node-gyp-build": "^4.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "prebuildify": "^6.0.0",
+    "prebuildify-cross": "^5.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.55.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
