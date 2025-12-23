@@ -43,12 +43,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/astro-fusion/astrofusion-sweph.git"
+    "url": "git@github.com:astro-fusion/af-sweph.git"
   },
   "bugs": {
-    "url": "https://github.com/astro-fusion/astrofusion-sweph/issues"
+    "url": "https://github.com/astro-fusion/af-sweph/issues"
   },
-  "homepage": "https://github.com/astro-fusion/astrofusion-sweph#readme",
+  "homepage": "https://github.com/astro-fusion/af-sweph#readme",
   "engines": {
     "node": ">=18.0.0"
   },
