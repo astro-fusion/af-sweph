@@ -430,15 +430,15 @@
     "python": "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
     "standalone_static_library": 1,
     "target": "25.0.0",
-    "prefix": "/Users/bishalghimire/.nvm/versions/node/v20.19.5",
-    "user_agent": "npm/11.6.2 node/v20.19.5 darwin arm64 workspaces/false",
-    "cache": "/Users/bishalghimire/.npm",
-    "node_gyp": "/Users/bishalghimire/.nvm/versions/node/v20.19.5/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js",
-    "npm_version": "11.6.2",
+    "global_prefix": "/Users/bishalghimire/.nvm/versions/node/v20.19.5",
+    "local_prefix": "/Users/bishalghimire/Documents/WORK/Code/AstroFusion/astrofusion-sweph",
+    "globalconfig": "/Users/bishalghimire/.nvm/versions/node/v20.19.5/etc/npmrc",
     "userconfig": "/Users/bishalghimire/.npmrc",
     "init_module": "/Users/bishalghimire/.npm-init.js",
-    "globalconfig": "/Users/bishalghimire/.nvm/versions/node/v20.19.5/etc/npmrc",
-    "local_prefix": "/Users/bishalghimire/Documents/WORK/Code/AstroFusion/astrofusion-sweph",
-    "global_prefix": "/Users/bishalghimire/.nvm/versions/node/v20.19.5"
+    "npm_version": "11.6.2",
+    "node_gyp": "/Users/bishalghimire/.nvm/versions/node/v20.19.5/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js",
+    "cache": "/Users/bishalghimire/.npm",
+    "user_agent": "npm/11.6.2 node/v20.19.5 darwin arm64 workspaces/false",
+    "prefix": "/Users/bishalghimire/.nvm/versions/node/v20.19.5"
   }
 }

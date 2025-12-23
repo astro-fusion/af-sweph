@@ -20,7 +20,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.PLANETS = exports.julianToDate = exports.dateToJulian = exports.getJulianDay = exports.setEphemerisPath = exports.getAyanamsa = exports.calculateNextMoonPhases = exports.calculateMoonPhase = exports.calculateMoonData = exports.calculateSolarNoon = exports.calculateSunTimes = exports.calculateHouses = exports.calculateLagna = exports.calculateSinglePlanet = exports.calculatePlanets = void 0;
+exports.calculateKundaliPageData = exports.registerAdapter = exports.initializeSweph = exports.createNodeAdapter = exports.createSwephAdapter = exports.createPlanetaryCalculator = exports.createSwephCalculator = exports.VEDIC_PLANET_ORDER = exports.NAKSHATRAS = exports.RASHIS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.PLANETS = exports.julianToDate = exports.dateToJulian = exports.getJulianDay = exports.setEphemerisPath = exports.getAyanamsa = exports.calculateNextMoonPhases = exports.calculateMoonPhase = exports.calculateMoonData = exports.calculateSolarNoon = exports.calculateSunTimes = exports.calculateHouses = exports.calculateLagna = exports.calculateSinglePlanet = exports.calculatePlanets = void 0;
 // Types
 __exportStar(require("./types"), exports);
 // Core calculation functions
@@ -49,4 +49,17 @@ var constants_1 = require("./constants");
 Object.defineProperty(exports, "PLANETS", { enumerable: true, get: function () { return constants_1.PLANETS; } });
 Object.defineProperty(exports, "AYANAMSA", { enumerable: true, get: function () { return constants_1.AYANAMSA; } });
 Object.defineProperty(exports, "HOUSE_SYSTEMS", { enumerable: true, get: function () { return constants_1.HOUSE_SYSTEMS; } });
+Object.defineProperty(exports, "RASHIS", { enumerable: true, get: function () { return constants_1.RASHIS; } });
+Object.defineProperty(exports, "NAKSHATRAS", { enumerable: true, get: function () { return constants_1.NAKSHATRAS; } });
+Object.defineProperty(exports, "VEDIC_PLANET_ORDER", { enumerable: true, get: function () { return constants_1.VEDIC_PLANET_ORDER; } });
+// Legacy compatibility exports (for migration from @astrofusion/sweph-*)
+var legacy_1 = require("./legacy");
+// Factory functions
+Object.defineProperty(exports, "createSwephCalculator", { enumerable: true, get: function () { return legacy_1.createSwephCalculator; } });
+Object.defineProperty(exports, "createPlanetaryCalculator", { enumerable: true, get: function () { return legacy_1.createPlanetaryCalculator; } });
+Object.defineProperty(exports, "createSwephAdapter", { enumerable: true, get: function () { return legacy_1.createSwephAdapter; } });
+Object.defineProperty(exports, "createNodeAdapter", { enumerable: true, get: function () { return legacy_1.createNodeAdapter; } });
+Object.defineProperty(exports, "initializeSweph", { enumerable: true, get: function () { return legacy_1.initializeSweph; } });
+Object.defineProperty(exports, "registerAdapter", { enumerable: true, get: function () { return legacy_1.registerAdapter; } });
+Object.defineProperty(exports, "calculateKundaliPageData", { enumerable: true, get: function () { return legacy_1.calculateKundaliPageData; } });
 //# sourceMappingURL=index.js.map

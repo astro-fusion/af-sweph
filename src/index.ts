@@ -44,4 +44,26 @@ export {
   PLANETS,
   AYANAMSA,
   HOUSE_SYSTEMS,
+  RASHIS,
+  NAKSHATRAS,
+  VEDIC_PLANET_ORDER,
 } from './constants';
+
+// Legacy compatibility exports (for migration from @astrofusion/sweph-*)
+export {
+  // Factory functions
+  createSwephCalculator,
+  createPlanetaryCalculator,
+  createSwephAdapter,
+  createNodeAdapter,
+  initializeSweph,
+  registerAdapter,
+  calculateKundaliPageData,
+  // Types
+  type PlanetaryCalculationProvider,
+  type SwephAdapter,
+  type SunTimesResult,
+  type MoonTimesResult,
+  type LegacyPlanet,
+  type LegacyLagnaInfo,
+} from './legacy';
