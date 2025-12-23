@@ -23,7 +23,6 @@
   "scripts": {
     "build": "tsc",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "prepare": "npm run build",
     "prebuild": "prebuildify --napi --strip",
     "prebuild:all": "prebuildify-cross -t 18.0.0 -t 20.0.0 -t 22.0.0",
     "test": "vitest run",
