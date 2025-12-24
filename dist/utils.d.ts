@@ -112,4 +112,18 @@ export declare function getNakshatra(longitude: number): {
     number: number;
     pada: number;
 };
+/**
+ * Helper to call swe_rise_trans with fallback for different signatures
+ * Provides compatibility with different versions of swisseph-v2 library
+ * @param jd - Julian day number
+ * @param id - Planet/celestial body identifier
+ * @param flag - Rise/set calculation flag
+ * @param location - Geographic location coordinates
+ * @returns Result of swe_rise_trans call
+ * @internal
+ */
+export declare function callRiseTrans(jd: number, id: number, flag: number, location: {
+    longitude: number;
+    latitude: number;
+}): any;
 //# sourceMappingURL=utils.d.ts.map

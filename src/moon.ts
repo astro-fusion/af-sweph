@@ -4,19 +4,31 @@
 
 import type { MoonData, NextMoonPhases, GeoLocation } from './types';
 import { PlanetId } from './types';
-import { MOON_PHASES, LUNAR_MONTH_DAYS } from './constants';
-import { 
-  initializeSweph, 
-  getNativeModule, 
-  dateToJulian, 
-  julianToDate 
+import { MOON_PHASES, LUNAR_MONTH_DAYS, DEFAULT_MOON_DISTANCE_KM, AU_IN_KM } from './constants';
+import {
+  initializeSweph,
+  getNativeModule,
+  dateToJulian,
+  julianToDate,
+  callRiseTrans
 } from './utils';
 
 /**
- * Calculate moon data including rise/set and phase
- * @param date - Date for calculation
- * @param location - Geographic location
- * @returns Moon data including rise, set, phase, illumination
+ * Calculate comprehensive moon data including rise/set times and phase
+ * @param date - Date for moon calculation (local time)
+ * @param location - Geographic location coordinates
+ * @returns MoonData object with rise/set times, phase, and illumination
+ * @example
+ * ```typescript
+ * const moonData = calculateMoonData(new Date(), {
+ *   latitude: 27.7172,
+ *   longitude: 85.324,
+ *   timezone: 5.75
+ * });
+ *
+ * console.log(`Moonrise: ${moonData.moonrise?.toLocaleTimeString()}`);
+ * console.log(`Phase: ${moonData.phaseName} (${moonData.illumination.toFixed(1)}% illuminated)`);
+ * ```
  */
 export function calculateMoonData(
   date: Date,
@@ -35,38 +47,15 @@ export function calculateMoonData(
   const CALC_RISE = sweph.SE_CALC_RISE || 1;
   const CALC_SET = sweph.SE_CALC_SET || 2;
   const CALC_MTRANS = sweph.SE_CALC_MTRANS || 4; // Meridian transit flag
-  const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
-  
-  // Helper to call swe_rise_trans with fallback for different signatures
-  const callRiseTrans = (id: number, flag: number) => {
-    try {
-      // Try flat arguments first (swisseph-v2 style)
-      return sweph.swe_rise_trans(
-        jd, id, '', SEFLG_SWIEPH, flag,
-        location.longitude, location.latitude, 0,
-        0, 0
-      );
-    } catch (error: any) {
-      if (error && error.message && error.message.includes('Wrong type of arguments')) {
-        // Try array argument for geopos (standard swisseph style)
-        return sweph.swe_rise_trans(
-          jd, id, '', SEFLG_SWIEPH, flag,
-          [location.longitude, location.latitude, 0],
-          0, 0
-        );
-      }
-      throw error;
-    }
-  };
 
   // Calculate moonrise
-  const moonriseResult = callRiseTrans(PlanetId.MOON, CALC_RISE);
-  
+  const moonriseResult = callRiseTrans(jd, PlanetId.MOON, CALC_RISE, location);
+
   // Calculate moonset
-  const moonsetResult = callRiseTrans(PlanetId.MOON, CALC_SET);
-  
+  const moonsetResult = callRiseTrans(jd, PlanetId.MOON, CALC_SET, location);
+
   // Calculate moon meridian transit (upper culmination)
-  const transitResult = callRiseTrans(PlanetId.MOON, CALC_MTRANS);
+  const transitResult = callRiseTrans(jd, PlanetId.MOON, CALC_MTRANS, location);
   
   // swe_rise_trans returns { transitTime, name } or { error }
   const moonrise = moonriseResult?.transitTime
@@ -90,17 +79,13 @@ export function calculateMoonData(
   
   // Calculate moon distance
   const moonCalcResult = sweph.swe_calc_ut(jd, PlanetId.MOON, 0);
-  let distance = 384400; // Default average Earth-Moon distance in km
+  let distance = DEFAULT_MOON_DISTANCE_KM; // Default average Earth-Moon distance in km
   if (moonCalcResult) {
-    let distanceAU = 0;
-    if (Array.isArray(moonCalcResult)) {
-      distanceAU = moonCalcResult[2] || 0;
-    } else if (moonCalcResult.xx) {
-      distanceAU = moonCalcResult.xx[2] || 0;
-    }
+    const resultPayload = Array.isArray(moonCalcResult) ? moonCalcResult : moonCalcResult.xx;
+    const distanceAU = resultPayload?.[2] || 0;
     if (distanceAU > 0) {
-      // Convert AU to km (1 AU = 149,597,870.7 km)
-      distance = distanceAU * 149597870.7;
+      // Convert AU to km
+      distance = distanceAU * AU_IN_KM;
     }
   }
   

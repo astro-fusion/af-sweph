@@ -23,6 +23,7 @@
   "scripts": {
     "build": "tsc",
     "build:esm": "tsc -p tsconfig.esm.json",
+    "prebuild": "npm run build && npm run build:esm && npm run validate-dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",

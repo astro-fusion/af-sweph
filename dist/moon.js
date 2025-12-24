@@ -36,24 +36,13 @@ function calculateMoonData(date, location) {
     const jd = (0, utils_1.dateToJulian)(utcDate);
     const CALC_RISE = sweph.SE_CALC_RISE || 1;
     const CALC_SET = sweph.SE_CALC_SET || 2;
-    const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
-    // Calculate moonrise using correct swe_rise_trans signature:
-    // (tjd_ut, ipl, starname, epheflag, rsmi, longitude, latitude, height, atpress, attemp)
-    const moonriseResult = sweph.swe_rise_trans(jd, types_1.PlanetId.MOON, '', // starname - empty string for planets
-    SEFLG_SWIEPH, // epheflag
-    CALC_RISE, // rsmi
-    location.longitude, location.latitude, 0, // height
-    0, // atpress
-    0 // attemp
-    );
+    const CALC_MTRANS = sweph.SE_CALC_MTRANS || 4; // Meridian transit flag
+    // Calculate moonrise
+    const moonriseResult = (0, utils_1.callRiseTrans)(jd, types_1.PlanetId.MOON, CALC_RISE, location);
     // Calculate moonset
-    const moonsetResult = sweph.swe_rise_trans(jd, types_1.PlanetId.MOON, '', // starname
-    SEFLG_SWIEPH, // epheflag
-    CALC_SET, // rsmi
-    location.longitude, location.latitude, 0, // height
-    0, // atpress
-    0 // attemp
-    );
+    const moonsetResult = (0, utils_1.callRiseTrans)(jd, types_1.PlanetId.MOON, CALC_SET, location);
+    // Calculate moon meridian transit (upper culmination)
+    const transitResult = (0, utils_1.callRiseTrans)(jd, types_1.PlanetId.MOON, CALC_MTRANS, location);
     // swe_rise_trans returns { transitTime, name } or { error }
     const moonrise = moonriseResult?.transitTime
         ? (0, utils_1.julianToDate)(moonriseResult.transitTime, timezone)
@@ -65,27 +54,39 @@ function calculateMoonData(date, location) {
         : moonsetResult?.dret?.[0]
             ? (0, utils_1.julianToDate)(moonsetResult.dret[0], timezone)
             : null;
+    const transit = transitResult?.transitTime
+        ? (0, utils_1.julianToDate)(transitResult.transitTime, timezone)
+        : transitResult?.dret?.[0]
+            ? (0, utils_1.julianToDate)(transitResult.dret[0], timezone)
+            : null;
     // Calculate moon phase using sun-moon elongation
     const { phase, illumination, age, phaseName } = calculateMoonPhase(date);
+    // Calculate moon distance
+    const moonCalcResult = sweph.swe_calc_ut(jd, types_1.PlanetId.MOON, 0);
+    let distance = constants_1.DEFAULT_MOON_DISTANCE_KM; // Default average Earth-Moon distance in km
+    if (moonCalcResult) {
+        const resultPayload = Array.isArray(moonCalcResult) ? moonCalcResult : moonCalcResult.xx;
+        const distanceAU = resultPayload?.[2] || 0;
+        if (distanceAU > 0) {
+            // Convert AU to km
+            distance = distanceAU * constants_1.AU_IN_KM;
+        }
+    }
     return {
         moonrise,
         moonset,
+        transit,
         phase,
         illumination,
         age,
         phaseName,
+        distance,
     };
 }
 /**
- * Calculate current moon phase and illumination
- * @param date - Date for moon phase calculation
- * @returns Object with phase angle, illumination percentage, age in days, and phase name
- * @example
- * ```typescript
- * const phase = calculateMoonPhase(new Date());
- * console.log(`${phase.phaseName}: ${phase.illumination.toFixed(1)}% illuminated`);
- * console.log(`Moon age: ${phase.age.toFixed(1)} days`);
- * ```
+ * Calculate current moon phase
+ * @param date - Date for calculation
+ * @returns Moon phase information
  */
 function calculateMoonPhase(date) {
     (0, utils_1.initializeSweph)();
@@ -122,15 +123,9 @@ function calculateMoonPhase(date) {
     return { phase, illumination, age, phaseName };
 }
 /**
- * Calculate dates of upcoming moon phases
- * @param date - Starting date to search from
- * @returns NextMoonPhases object with dates of next new moon, full moon, etc.
- * @example
- * ```typescript
- * const phases = calculateNextMoonPhases(new Date());
- * console.log(`Next Full Moon: ${phases.fullMoon.toDateString()}`);
- * console.log(`Next New Moon: ${phases.newMoon.toDateString()}`);
- * ```
+ * Calculate dates of next moon phases
+ * @param date - Starting date
+ * @returns Dates of upcoming moon phases
  */
 function calculateNextMoonPhases(date) {
     (0, utils_1.initializeSweph)();

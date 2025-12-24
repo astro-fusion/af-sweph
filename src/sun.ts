@@ -4,18 +4,32 @@
 
 import type { SunTimes, SolarNoonResult, GeoLocation } from './types';
 import { PlanetId } from './types';
-import { 
-  initializeSweph, 
-  getNativeModule, 
-  dateToJulian, 
-  julianToDate 
+import {
+  initializeSweph,
+  getNativeModule,
+  dateToJulian,
+  julianToDate,
+  callRiseTrans,
+  callAzAlt
 } from './utils';
 
 /**
- * Calculate sunrise, sunset, and twilight times
- * @param date - Date for calculation
- * @param location - Geographic location
- * @returns Sun times including sunrise, sunset, twilights
+ * Calculate sunrise, sunset, and twilight times for a location
+ * @param date - Date for sun time calculation (local time)
+ * @param location - Geographic location coordinates
+ * @returns SunTimes object with all sunrise/sunset and twilight times
+ * @example
+ * ```typescript
+ * const sunTimes = calculateSunTimes(new Date(), {
+ *   latitude: 40.7128,
+ *   longitude: -74.0060,
+ *   timezone: -5
+ * });
+ *
+ * console.log(`Sunrise: ${sunTimes.sunrise?.toLocaleTimeString()}`);
+ * console.log(`Sunset: ${sunTimes.sunset?.toLocaleTimeString()}`);
+ * console.log(`Day length: ${sunTimes.dayLength.toFixed(1)} hours`);
+ * ```
  */
 export function calculateSunTimes(
   date: Date,
@@ -34,35 +48,12 @@ export function calculateSunTimes(
   // Calculation flags for rise/set
   const CALC_RISE = sweph.SE_CALC_RISE || 1;
   const CALC_SET = sweph.SE_CALC_SET || 2;
-  const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
-  
-  // Helper to call swe_rise_trans with fallback for different signatures
-  const callRiseTrans = (id: number, flag: number) => {
-    try {
-      // Try flat arguments first (swisseph-v2 style)
-      return sweph.swe_rise_trans(
-        jd, id, '', SEFLG_SWIEPH, flag,
-        location.longitude, location.latitude, 0,
-        0, 0
-      );
-    } catch (error: any) {
-      if (error && error.message && error.message.includes('Wrong type of arguments')) {
-        // Try array argument for geopos (standard swisseph style)
-        return sweph.swe_rise_trans(
-          jd, id, '', SEFLG_SWIEPH, flag,
-          [location.longitude, location.latitude, 0],
-          0, 0
-        );
-      }
-      throw error;
-    }
-  };
 
   // Calculate sunrise
-  const sunriseResult = callRiseTrans(PlanetId.SUN, CALC_RISE);
-  
+  const sunriseResult = callRiseTrans(jd, PlanetId.SUN, CALC_RISE, location);
+
   // Calculate sunset
-  const sunsetResult = callRiseTrans(PlanetId.SUN, CALC_SET);
+  const sunsetResult = callRiseTrans(jd, PlanetId.SUN, CALC_SET, location);
   
   // Extract Julian day results - swe_rise_trans returns { transitTime, name } or { error }
   const sunriseJd = sunriseResult?.transitTime || sunriseResult?.dret?.[0] || jd + 0.25;
@@ -117,36 +108,13 @@ function calculateTwilightTime(
 ): Date | null {
   try {
     const sweph = getNativeModule();
-    
-    const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2;
-    const flags = isRise 
+
+    const flags = isRise
       ? (sweph.SE_CALC_RISE || 1)
       : (sweph.SE_CALC_SET || 2);
-    
-    // Helper to call swe_rise_trans with fallback for different signatures
-    const callRiseTrans = (id: number, rsmi: number) => {
-      try {
-        // Try flat arguments first
-        return sweph.swe_rise_trans(
-          jd, id, '', SEFLG_SWIEPH, rsmi,
-          location.longitude, location.latitude, 0,
-          0, 0
-        );
-      } catch (error: any) {
-        if (error && error.message && error.message.includes('Wrong type of arguments')) {
-          // Try array argument
-          return sweph.swe_rise_trans(
-            jd, id, '', SEFLG_SWIEPH, rsmi,
-            [location.longitude, location.latitude, 0],
-            0, 0
-          );
-        }
-        throw error;
-      }
-    };
 
     // Use civil twilight flag with custom depression
-    const result = callRiseTrans(PlanetId.SUN, flags | (sweph.SE_BIT_CIVIL_TWILIGHT || 0x100));
+    const result = callRiseTrans(jd, PlanetId.SUN, flags | (sweph.SE_BIT_CIVIL_TWILIGHT || 0x100), location);
     
     // swe_rise_trans returns { transitTime, name } or { error }
     const transitTime = result?.transitTime || result?.dret?.[0];
@@ -201,28 +169,22 @@ export function calculateSolarNoon(
 }
 
 /**
- * Calculate Azimuth and Altitude (Helper)
+ * Calculate azimuth and altitude for horizontal coordinate conversion
+ * Converts ecliptic coordinates to horizontal coordinates (azimuth/altitude)
+ * @param sweph - Swiss Ephemeris native module instance
+ * @param jd - Julian day number for calculation
+ * @param location - Observer's geographic location
+ * @param planetPos - Celestial body position in ecliptic coordinates
+ * @returns Object with azimuth (0°=North, 90°=East) and altitude (degrees above horizon)
+ * @internal
  */
 function calculateAzAlt(
-  sweph: any,
   jd: number,
   location: GeoLocation,
   planetPos: { longitude: number; latitude: number; distance: number }
 ): { azimuth: number; altitude: number } {
-  // swe_azalt expects: tjd_ut, calc_flag, geopos, atpress, attemp, xin
-  // xin: array of 3 doubles: longitude, latitude, distance
-  const geopos = [location.longitude, location.latitude, 0];
-  const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
-  
-  const result = sweph.swe_azalt(
-    jd,
-    sweph.SE_EQU2HOR, // Flag to convert equatorial to horizontal
-    geopos,
-    0, // Pressure (0 = default 1013.25 mbar)
-    10, // Temperature (10C)
-    xin
-  );
-  
+  const result = callAzAlt(jd, location, planetPos);
+
   return {
     azimuth: result.azimuth || result[0] || 0,
     altitude: result.altitude || result[1] || 0
@@ -279,7 +241,7 @@ export function calculateSunPath(
             distance = result.xx[2] || 0;
         }
         
-        const azAlt = calculateAzAlt(sweph, jd, location, { longitude, latitude, distance });
+        const azAlt = calculateAzAlt(jd, location, { longitude, latitude, distance });
         
         path.push({
             time,

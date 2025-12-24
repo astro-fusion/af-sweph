@@ -130,3 +130,13 @@ export const JULIAN_UNIX_EPOCH = 2440587.5;
  * Average length of a lunar month in days
  */
 export const LUNAR_MONTH_DAYS = 29.530588853;
+
+/**
+ * Default average Earth-Moon distance in kilometers
+ */
+export const DEFAULT_MOON_DISTANCE_KM = 384400;
+
+/**
+ * Astronomical Unit in kilometers (1 AU = 149,597,870.7 km)
+ */
+export const AU_IN_KM = 149597870.7;

@@ -37,24 +37,10 @@ function calculateSunTimes(date, location) {
     // Calculation flags for rise/set
     const CALC_RISE = sweph.SE_CALC_RISE || 1;
     const CALC_SET = sweph.SE_CALC_SET || 2;
-    const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
-    // Calculate sunrise using correct swe_rise_trans signature:
-    // (tjd_ut, ipl, starname, epheflag, rsmi, longitude, latitude, height, atpress, attemp)
-    const sunriseResult = sweph.swe_rise_trans(jd, types_1.PlanetId.SUN, '', // starname - empty string for planets
-    SEFLG_SWIEPH, // epheflag
-    CALC_RISE, // rsmi - rise/set/transit flag
-    location.longitude, location.latitude, 0, // height
-    0, // atpress - atmospheric pressure
-    0 // attemp - atmospheric temperature
-    );
+    // Calculate sunrise
+    const sunriseResult = (0, utils_1.callRiseTrans)(jd, types_1.PlanetId.SUN, CALC_RISE, location);
     // Calculate sunset
-    const sunsetResult = sweph.swe_rise_trans(jd, types_1.PlanetId.SUN, '', // starname - empty string for planets
-    SEFLG_SWIEPH, // epheflag
-    CALC_SET, // rsmi
-    location.longitude, location.latitude, 0, // height
-    0, // atpress
-    0 // attemp
-    );
+    const sunsetResult = (0, utils_1.callRiseTrans)(jd, types_1.PlanetId.SUN, CALC_SET, location);
     // Extract Julian day results - swe_rise_trans returns { transitTime, name } or { error }
     const sunriseJd = sunriseResult?.transitTime || sunriseResult?.dret?.[0] || jd + 0.25;
     const sunsetJd = sunsetResult?.transitTime || sunsetResult?.dret?.[0] || jd + 0.75;
@@ -84,30 +70,22 @@ function calculateSunTimes(date, location) {
     };
 }
 /**
- * Calculate civil, nautical, or astronomical twilight time
- * @param jd - Julian day number at midnight (local time)
- * @param location - Geographic location coordinates
- * @param depression - Sun depression angle in degrees (6=civil, 12=nautical, 18=astronomical)
- * @param isRise - true for morning twilight start, false for evening twilight end
- * @param timezone - Timezone offset in hours from UTC
- * @returns Twilight Date object or null if twilight doesn't occur at this location/date
- * @internal
+ * Calculate twilight time for a specific depression angle
+ * @param jd - Julian day at midnight
+ * @param location - Geographic location
+ * @param depression - Depression angle in degrees (6=civil, 12=nautical, 18=astronomical)
+ * @param isRise - true for morning twilight, false for evening
+ * @param timezone - Timezone offset in hours
+ * @returns Twilight time or null if doesn't occur
  */
 function calculateTwilightTime(jd, location, depression, isRise, timezone) {
     try {
         const sweph = (0, utils_1.getNativeModule)();
-        const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2;
         const flags = isRise
             ? (sweph.SE_CALC_RISE || 1)
             : (sweph.SE_CALC_SET || 2);
         // Use civil twilight flag with custom depression
-        const result = sweph.swe_rise_trans(jd, types_1.PlanetId.SUN, '', // starname - empty string for planets
-        SEFLG_SWIEPH, // epheflag
-        flags | (sweph.SE_BIT_CIVIL_TWILIGHT || 0x100), // rsmi
-        location.longitude, location.latitude, 0, // height
-        0, // atpress
-        0 // attemp
-        );
+        const result = (0, utils_1.callRiseTrans)(jd, types_1.PlanetId.SUN, flags | (sweph.SE_BIT_CIVIL_TWILIGHT || 0x100), location);
         // swe_rise_trans returns { transitTime, name } or { error }
         const transitTime = result?.transitTime || result?.dret?.[0];
         if (transitTime) {
@@ -120,21 +98,10 @@ function calculateTwilightTime(jd, location, depression, isRise, timezone) {
     return null;
 }
 /**
- * Calculate solar noon (when sun crosses the meridian)
- * @param date - Date for solar noon calculation
- * @param location - Geographic location coordinates
- * @returns SolarNoonResult with noon time and sun's altitude at meridian
- * @example
- * ```typescript
- * const solarNoon = calculateSolarNoon(new Date(), {
- *   latitude: 51.5074,
- *   longitude: -0.1278,
- *   timezone: 0
- * });
- *
- * console.log(`Solar noon: ${solarNoon.time.toLocaleTimeString()}`);
- * console.log(`Sun altitude at noon: ${solarNoon.altitude.toFixed(1)}°`);
- * ```
+ * Calculate solar noon (meridian transit)
+ * @param date - Date for calculation
+ * @param location - Geographic location
+ * @returns Solar noon time and sun altitude
  */
 function calculateSolarNoon(date, location) {
     const sunTimes = calculateSunTimes(date, location);
@@ -163,6 +130,7 @@ function calculateSolarNoon(date, location) {
 }
 /**
  * Calculate azimuth and altitude for horizontal coordinate conversion
+ * Converts ecliptic coordinates to horizontal coordinates (azimuth/altitude)
  * @param sweph - Swiss Ephemeris native module instance
  * @param jd - Julian day number for calculation
  * @param location - Observer's geographic location
@@ -185,22 +153,10 @@ function calculateAzAlt(sweph, jd, location, planetPos) {
     };
 }
 /**
- * Calculate sun's path throughout the day (hourly positions)
- * @param date - Date for sun path calculation
- * @param location - Geographic location coordinates
- * @returns Array of sun positions with time, azimuth, and altitude for each hour
- * @example
- * ```typescript
- * const sunPath = calculateSunPath(new Date(), {
- *   latitude: 35.6762,
- *   longitude: 139.6503,
- *   timezone: 9
- * });
- *
- * // Find sun position at noon
- * const noonPosition = sunPath.find(pos => pos.time.getHours() === 12);
- * console.log(`Sun at noon: ${noonPosition?.azimuth.toFixed(1)}° azimuth, ${noonPosition?.altitude.toFixed(1)}° altitude`);
- * ```
+ * Calculate daily sun path (position every hour)
+ * @param date - Date for calculation
+ * @param location - Geographic location
+ * @returns Array of sun positions
  */
 function calculateSunPath(date, location) {
     (0, utils_1.initializeSweph)();

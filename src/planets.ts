@@ -4,15 +4,17 @@
 
 import type { Planet, CalculationOptions, GeoLocation } from './types';
 import { VEDIC_PLANET_ORDER, CALC_FLAGS, RASHIS } from './constants';
-import { 
-  initializeSweph, 
-  getNativeModule, 
-  dateToJulian, 
+import {
+  initializeSweph,
+  getNativeModule,
+  dateToJulian,
   julianToDate,
-  normalizeLongitude, 
-  getRashi, 
+  normalizeLongitude,
+  getRashi,
   getRashiDegree,
-  isRetrograde 
+  isRetrograde,
+  callRiseTrans,
+  callAzAlt
 } from './utils';
 
 /**
@@ -25,25 +27,12 @@ import {
  * @internal
  */
 function calculateAzAlt(
-  sweph: any,
   jd: number,
   location: GeoLocation,
   planetPos: { longitude: number; latitude: number; distance: number }
 ): { azimuth: number; altitude: number } {
-  // swe_azalt expects: tjd_ut, calc_flag, geopos, atpress, attemp, xin
-  // xin: array of 3 doubles: longitude, latitude, distance
-  const geopos = [location.longitude, location.latitude, 0];
-  const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
-  
-  const result = sweph.swe_azalt(
-    jd,
-    sweph.SE_EQU2HOR, // Flag to convert equatorial to horizontal
-    geopos,
-    0, // Pressure (0 = default 1013.25 mbar)
-    10, // Temperature (10C)
-    xin
-  );
-  
+  const result = callAzAlt(jd, location, planetPos);
+
   return {
     azimuth: result.azimuth || result[0] || 0,
     altitude: result.altitude || result[1] || 0
@@ -180,10 +169,10 @@ export function calculatePlanets(
   for (const p of calculatedPlanets) {
     let azAlt = {};
     if (location) {
-      azAlt = calculateAzAlt(sweph, jd, location, { 
-        longitude: p.longitude, 
-        latitude: p.latitude, 
-        distance: p.distance 
+      azAlt = calculateAzAlt(jd, location, {
+        longitude: p.longitude,
+        latitude: p.latitude,
+        distance: p.distance
       });
     }
     
@@ -214,10 +203,10 @@ export function calculatePlanets(
       
       let azAlt = {};
       if (location) {
-        azAlt = calculateAzAlt(sweph, jd, location, {
+        azAlt = calculateAzAlt(jd, location, {
           longitude: ketuLongitude,
           latitude: 0,
-          distance: 0 
+          distance: 0
         });
       }
       
@@ -303,7 +292,10 @@ export function calculateSinglePlanet(
   const normalizedLong = normalizeLongitude(longitude);
   
   // Get planet name from sweph
-  const planetName = sweph.swe_get_planet_name(planetId) || `Planet ${planetId}`;
+  const planetNameResult = sweph.swe_get_planet_name(planetId);
+  const planetName = (typeof planetNameResult === 'object' && planetNameResult?.name)
+    ? planetNameResult.name
+    : (planetNameResult || `Planet ${planetId}`);
   
   // Az/Alt
   let azAlt = {};
@@ -374,59 +366,25 @@ export function calculatePlanetRiseSetTimes(
   const sweph = getNativeModule();
   
   const timezone = location.timezone ?? 0;
-  
+
   // Convert to UTC midnight
   const utcDate = new Date(date.getTime() - timezone * 60 * 60 * 1000);
   utcDate.setUTCHours(0, 0, 0, 0);
   const jd = dateToJulian(utcDate);
-  
+
+  // Calculation flags for rise/set
   const CALC_RISE = sweph.SE_CALC_RISE || 1;
   const CALC_SET = sweph.SE_CALC_SET || 2;
-  const CALC_TRANSIT = sweph.SE_CALC_MTRANSIT || 4; // Meridian transit
-  const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
-  
-  // Calculate rise using correct swe_rise_trans signature:
-  // (tjd_ut, ipl, starname, epheflag, rsmi, longitude, latitude, height, atpress, attemp)
-  const riseResult = sweph.swe_rise_trans(
-    jd,
-    planetId,
-    '',  // starname - empty string for planets
-    SEFLG_SWIEPH,  // epheflag
-    CALC_RISE,  // rsmi
-    location.longitude,
-    location.latitude,
-    0,  // height
-    0,  // atpress
-    0   // attemp
-  );
-  
+  const CALC_TRANSIT = sweph.SE_CALC_MTRANSIT || 4;
+
+  // Calculate rise
+  const riseResult = callRiseTrans(jd, planetId, CALC_RISE, location);
+
   // Calculate set
-  const setResult = sweph.swe_rise_trans(
-    jd,
-    planetId,
-    '',  // starname
-    SEFLG_SWIEPH,  // epheflag
-    CALC_SET,  // rsmi
-    location.longitude,
-    location.latitude,
-    0,  // height
-    0,  // atpress
-    0   // attemp
-  );
+  const setResult = callRiseTrans(jd, planetId, CALC_SET, location);
 
   // Calculate transit
-  const transitResult = sweph.swe_rise_trans(
-    jd,
-    planetId,
-    '',  // starname
-    SEFLG_SWIEPH,  // epheflag
-    CALC_TRANSIT,  // rsmi
-    location.longitude,
-    location.latitude,
-    0,  // height
-    0,  // atpress
-    0   // attemp
-  );
+  const transitResult = callRiseTrans(jd, planetId, CALC_TRANSIT, location);
   
   // swe_rise_trans returns { transitTime, name } or { error }
   const rise = riseResult?.transitTime

@@ -18,6 +18,7 @@ exports.getRashi = getRashi;
 exports.getRashiDegree = getRashiDegree;
 exports.isRetrograde = isRetrograde;
 exports.getNakshatra = getNakshatra;
+exports.callRiseTrans = callRiseTrans;
 const path_1 = __importDefault(require("path"));
 const constants_1 = require("./constants");
 // Native module instance
@@ -224,5 +225,30 @@ function getNakshatra(longitude) {
     const positionInNakshatra = norm % nakshatraSpan;
     const pada = Math.floor(positionInNakshatra / padaSpan) + 1;
     return { number: nakshatraNumber, pada };
+}
+/**
+ * Helper to call swe_rise_trans with fallback for different signatures
+ * Provides compatibility with different versions of swisseph-v2 library
+ * @param jd - Julian day number
+ * @param id - Planet/celestial body identifier
+ * @param flag - Rise/set calculation flag
+ * @param location - Geographic location coordinates
+ * @returns Result of swe_rise_trans call
+ * @internal
+ */
+function callRiseTrans(jd, id, flag, location) {
+    const sweph = getNativeModule();
+    const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2;
+    try {
+        // Try flat arguments first (swisseph-v2 style)
+        return sweph.swe_rise_trans(jd, id, '', SEFLG_SWIEPH, flag, location.longitude, location.latitude, 0, 0, 0);
+    }
+    catch (error) {
+        if (error && error.message && error.message.includes('Wrong type of arguments')) {
+            // Try array argument for geopos (standard swisseph style)
+            return sweph.swe_rise_trans(jd, id, '', SEFLG_SWIEPH, flag, [location.longitude, location.latitude, 0], 0, 0);
+        }
+        throw error;
+    }
 }
 //# sourceMappingURL=utils.js.map
