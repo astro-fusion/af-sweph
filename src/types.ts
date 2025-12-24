@@ -118,6 +118,8 @@ export interface MoonData {
   age: number;
   /** Phase name (New Moon, Waxing Crescent, etc.) */
   phaseName: string;
+  /** Distance from Earth in km */
+  distance?: number;
 }
 
 /**
