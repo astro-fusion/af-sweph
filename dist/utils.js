@@ -26,7 +26,10 @@ let ephemerisPath = null;
 let isInitialized = false;
 /**
  * Get the native Swiss Ephemeris module
- * Uses node-gyp-build to load pre-built binaries
+ * Automatically loads pre-built binaries or falls back to swisseph-v2
+ * @returns Swiss Ephemeris native module instance
+ * @throws Error if no compatible native module can be loaded
+ * @internal
  */
 function getNativeModule() {
     if (!sweph) {
@@ -52,8 +55,11 @@ function getNativeModule() {
     return sweph;
 }
 /**
- * Initialize the Swiss Ephemeris
- * Automatically finds and sets ephemeris path
+ * Initialize the Swiss Ephemeris system
+ * Automatically locates and sets the ephemeris data file path
+ * Searches in common locations: ./ephe, ../ephe, etc.
+ * @throws Error if ephemeris files cannot be found
+ * @internal
  */
 function initializeSweph() {
     if (isInitialized)
@@ -83,7 +89,16 @@ function initializeSweph() {
     isInitialized = true;
 }
 /**
- * Set custom ephemeris file path
+ * Set custom path to Swiss Ephemeris data files
+ * @param path - Directory path containing ephemeris files (.se1 files)
+ * @example
+ * ```typescript
+ * // Set custom ephemeris path
+ * setEphemerisPath('/path/to/ephemeris/files');
+ *
+ * // Then initialize
+ * initializeSweph();
+ * ```
  */
 function setEphemerisPath(path) {
     ephemerisPath = path;
@@ -92,9 +107,17 @@ function setEphemerisPath(path) {
     }
 }
 /**
- * Get the current ayanamsa value
- * @param date - Date for calculation
- * @param ayanamsaType - Ayanamsa system (default: Lahiri = 1)
+ * Get the ayanamsa correction value for sidereal calculations
+ * @param date - Date for ayanamsa calculation
+ * @param ayanamsaType - Ayanamsa system identifier (default: 1 = Lahiri)
+ * @returns Ayanamsa value in degrees to subtract from tropical longitude
+ * @example
+ * ```typescript
+ * import { AYANAMSA } from '@AstroFusion/sweph';
+ *
+ * const ayanamsa = getAyanamsa(new Date(), AYANAMSA.LAHIRI);
+ * console.log(`Lahiri ayanamsa: ${ayanamsa.toFixed(4)}°`);
+ * ```
  */
 function getAyanamsa(date, ayanamsaType = 1) {
     initializeSweph();
@@ -104,7 +127,14 @@ function getAyanamsa(date, ayanamsaType = 1) {
     return sweph.swe_get_ayanamsa(jd);
 }
 /**
- * Convert Date to Julian Day number
+ * Convert JavaScript Date to Julian Day number
+ * @param date - JavaScript Date object
+ * @returns Julian Day number (days since J2000 epoch)
+ * @example
+ * ```typescript
+ * const jd = dateToJulian(new Date('2024-01-01'));
+ * console.log(`Julian Day: ${jd}`); // ~2460311.5
+ * ```
  */
 function dateToJulian(date) {
     const sweph = getNativeModule();
@@ -118,7 +148,15 @@ function dateToJulian(date) {
     return sweph.swe_julday(year, month, day, hour, 1);
 }
 /**
- * Convert Julian Day to Date
+ * Convert Julian Day number to JavaScript Date
+ * @param jd - Julian Day number
+ * @param timezoneOffset - Timezone offset in hours (e.g., 5.5 for IST)
+ * @returns JavaScript Date object
+ * @example
+ * ```typescript
+ * const date = julianToDate(2460311.5, 5.5); // IST timezone
+ * console.log(date.toISOString()); // 2024-01-01T00:00:00.000Z (adjusted)
+ * ```
  */
 function julianToDate(jd, timezoneOffset = 0) {
     const utcMs = (jd - constants_1.JULIAN_UNIX_EPOCH) * 86400000;
@@ -131,7 +169,15 @@ function getJulianDay(date) {
     return dateToJulian(date);
 }
 /**
- * Normalize longitude to 0-360 range
+ * Normalize ecliptic longitude to 0-360° range
+ * @param longitude - Longitude value (can be any number)
+ * @returns Normalized longitude between 0° and 360°
+ * @example
+ * ```typescript
+ * normalizeLongitude(370);  // 10
+ * normalizeLongitude(-10);  // 350
+ * normalizeLongitude(360);  // 0
+ * ```
  */
 function normalizeLongitude(longitude) {
     let norm = longitude % 360;
@@ -160,8 +206,15 @@ function isRetrograde(speed) {
     return speed < 0;
 }
 /**
- * Get nakshatra from longitude
- * @returns Object with nakshatra number (1-27) and pada (1-4)
+ * Calculate nakshatra (lunar mansion) from ecliptic longitude
+ * @param longitude - Ecliptic longitude in degrees
+ * @returns Object containing nakshatra number (1-27) and pada (1-4)
+ * @example
+ * ```typescript
+ * const nakshatra = getNakshatra(45.5);
+ * console.log(`Nakshatra ${nakshatra.number}, Pada ${nakshatra.pada}`);
+ * // Output: Nakshatra 4, Pada 1 (Ardra)
+ * ```
  */
 function getNakshatra(longitude) {
     const norm = normalizeLongitude(longitude);

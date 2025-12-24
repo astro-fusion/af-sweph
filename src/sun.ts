@@ -12,10 +12,22 @@ import {
 } from './utils';
 
 /**
- * Calculate sunrise, sunset, and twilight times
- * @param date - Date for calculation
- * @param location - Geographic location
- * @returns Sun times including sunrise, sunset, twilights
+ * Calculate sunrise, sunset, and twilight times for a location
+ * @param date - Date for sun time calculation (local time)
+ * @param location - Geographic location coordinates
+ * @returns SunTimes object with all sunrise/sunset and twilight times
+ * @example
+ * ```typescript
+ * const sunTimes = calculateSunTimes(new Date(), {
+ *   latitude: 40.7128,
+ *   longitude: -74.0060,
+ *   timezone: -5
+ * });
+ *
+ * console.log(`Sunrise: ${sunTimes.sunrise?.toLocaleTimeString()}`);
+ * console.log(`Sunset: ${sunTimes.sunset?.toLocaleTimeString()}`);
+ * console.log(`Day length: ${sunTimes.dayLength.toFixed(1)} hours`);
+ * ```
  */
 export function calculateSunTimes(
   date: Date,
@@ -101,13 +113,14 @@ export function calculateSunTimes(
 }
 
 /**
- * Calculate twilight time for a specific depression angle
- * @param jd - Julian day at midnight
- * @param location - Geographic location
- * @param depression - Depression angle in degrees (6=civil, 12=nautical, 18=astronomical)
- * @param isRise - true for morning twilight, false for evening
- * @param timezone - Timezone offset in hours
- * @returns Twilight time or null if doesn't occur
+ * Calculate civil, nautical, or astronomical twilight time
+ * @param jd - Julian day number at midnight (local time)
+ * @param location - Geographic location coordinates
+ * @param depression - Sun depression angle in degrees (6=civil, 12=nautical, 18=astronomical)
+ * @param isRise - true for morning twilight start, false for evening twilight end
+ * @param timezone - Timezone offset in hours from UTC
+ * @returns Twilight Date object or null if twilight doesn't occur at this location/date
+ * @internal
  */
 function calculateTwilightTime(
   jd: number,
@@ -151,10 +164,21 @@ function calculateTwilightTime(
 }
 
 /**
- * Calculate solar noon (meridian transit)
- * @param date - Date for calculation
- * @param location - Geographic location
- * @returns Solar noon time and sun altitude
+ * Calculate solar noon (when sun crosses the meridian)
+ * @param date - Date for solar noon calculation
+ * @param location - Geographic location coordinates
+ * @returns SolarNoonResult with noon time and sun's altitude at meridian
+ * @example
+ * ```typescript
+ * const solarNoon = calculateSolarNoon(new Date(), {
+ *   latitude: 51.5074,
+ *   longitude: -0.1278,
+ *   timezone: 0
+ * });
+ *
+ * console.log(`Solar noon: ${solarNoon.time.toLocaleTimeString()}`);
+ * console.log(`Sun altitude at noon: ${solarNoon.altitude.toFixed(1)}°`);
+ * ```
  */
 export function calculateSolarNoon(
   date: Date,
@@ -191,7 +215,13 @@ export function calculateSolarNoon(
 }
 
 /**
- * Calculate Azimuth and Altitude (Helper)
+ * Calculate azimuth and altitude for horizontal coordinate conversion
+ * @param sweph - Swiss Ephemeris native module instance
+ * @param jd - Julian day number for calculation
+ * @param location - Observer's geographic location
+ * @param planetPos - Celestial body position in ecliptic coordinates
+ * @returns Object with azimuth (0°=North, 90°=East) and altitude (degrees above horizon)
+ * @internal
  */
 function calculateAzAlt(
   sweph: any,
@@ -220,10 +250,22 @@ function calculateAzAlt(
 }
 
 /**
- * Calculate daily sun path (position every hour)
- * @param date - Date for calculation
- * @param location - Geographic location
- * @returns Array of sun positions
+ * Calculate sun's path throughout the day (hourly positions)
+ * @param date - Date for sun path calculation
+ * @param location - Geographic location coordinates
+ * @returns Array of sun positions with time, azimuth, and altitude for each hour
+ * @example
+ * ```typescript
+ * const sunPath = calculateSunPath(new Date(), {
+ *   latitude: 35.6762,
+ *   longitude: 139.6503,
+ *   timezone: 9
+ * });
+ *
+ * // Find sun position at noon
+ * const noonPosition = sunPath.find(pos => pos.time.getHours() === 12);
+ * console.log(`Sun at noon: ${noonPosition?.azimuth.toFixed(1)}° azimuth, ${noonPosition?.altitude.toFixed(1)}° altitude`);
+ * ```
  */
 export function calculateSunPath(
   date: Date,
