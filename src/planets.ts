@@ -325,55 +325,72 @@ export function calculatePlanetRiseSetTimes(
   utcDate.setUTCHours(0, 0, 0, 0);
   const jd = dateToJulian(utcDate);
   
-  const geopos = [location.longitude, location.latitude, 0];
   const CALC_RISE = sweph.SE_CALC_RISE || 1;
   const CALC_SET = sweph.SE_CALC_SET || 2;
   const CALC_TRANSIT = sweph.SE_CALC_MTRANSIT || 4; // Meridian transit
+  const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
   
-  // Calculate rise
+  // Calculate rise using correct swe_rise_trans signature:
+  // (tjd_ut, ipl, starname, epheflag, rsmi, longitude, latitude, height, atpress, attemp)
   const riseResult = sweph.swe_rise_trans(
     jd,
     planetId,
-    0,
-    CALC_RISE,
-    geopos,
-    0,
-    0
+    '',  // starname - empty string for planets
+    SEFLG_SWIEPH,  // epheflag
+    CALC_RISE,  // rsmi
+    location.longitude,
+    location.latitude,
+    0,  // height
+    0,  // atpress
+    0   // attemp
   );
   
   // Calculate set
   const setResult = sweph.swe_rise_trans(
     jd,
     planetId,
-    0,
-    CALC_SET,
-    geopos,
-    0,
-    0
+    '',  // starname
+    SEFLG_SWIEPH,  // epheflag
+    CALC_SET,  // rsmi
+    location.longitude,
+    location.latitude,
+    0,  // height
+    0,  // atpress
+    0   // attemp
   );
 
   // Calculate transit
   const transitResult = sweph.swe_rise_trans(
     jd,
     planetId,
-    0,
-    CALC_TRANSIT,
-    geopos,
-    0,
-    0
+    '',  // starname
+    SEFLG_SWIEPH,  // epheflag
+    CALC_TRANSIT,  // rsmi
+    location.longitude,
+    location.latitude,
+    0,  // height
+    0,  // atpress
+    0   // attemp
   );
   
-  const rise = riseResult?.dret?.[0]
-    ? julianToDate(riseResult.dret[0], timezone)
-    : null;
-    
-  const set = setResult?.dret?.[0]
-    ? julianToDate(setResult.dret[0], timezone)
-    : null;
+  // swe_rise_trans returns { transitTime, name } or { error }
+  const rise = riseResult?.transitTime
+    ? julianToDate(riseResult.transitTime, timezone)
+    : riseResult?.dret?.[0]
+      ? julianToDate(riseResult.dret[0], timezone)
+      : null;
+     
+  const set = setResult?.transitTime
+    ? julianToDate(setResult.transitTime, timezone)
+    : setResult?.dret?.[0]
+      ? julianToDate(setResult.dret[0], timezone)
+      : null;
 
-  const transit = transitResult?.dret?.[0]
-    ? julianToDate(transitResult.dret[0], timezone)
-    : null;
+  const transit = transitResult?.transitTime
+    ? julianToDate(transitResult.transitTime, timezone)
+    : transitResult?.dret?.[0]
+      ? julianToDate(transitResult.dret[0], timezone)
+      : null;
 
   // Calculate altitude at transit (if transit exists)
   let transitAltitude = 0;

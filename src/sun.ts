@@ -34,35 +34,40 @@ export function calculateSunTimes(
   // Calculation flags for rise/set
   const CALC_RISE = sweph.SE_CALC_RISE || 1;
   const CALC_SET = sweph.SE_CALC_SET || 2;
+  const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
   
-  // Geographic array format: [longitude, latitude, altitude]
-  const geopos = [location.longitude, location.latitude, 0];
-  
-  // Calculate sunrise
+  // Calculate sunrise using correct swe_rise_trans signature:
+  // (tjd_ut, ipl, starname, epheflag, rsmi, longitude, latitude, height, atpress, attemp)
   const sunriseResult = sweph.swe_rise_trans(
-    jd, 
-    PlanetId.SUN, 
-    0,  // Star name (null for planets)
-    CALC_RISE,
-    geopos,
-    0,  // Atmospheric pressure
-    0   // Atmospheric temperature
+    jd,
+    PlanetId.SUN,
+    '',  // starname - empty string for planets
+    SEFLG_SWIEPH,  // epheflag
+    CALC_RISE,  // rsmi - rise/set/transit flag
+    location.longitude,
+    location.latitude,
+    0,  // height
+    0,  // atpress - atmospheric pressure
+    0   // attemp - atmospheric temperature
   );
   
   // Calculate sunset
   const sunsetResult = sweph.swe_rise_trans(
     jd,
     PlanetId.SUN,
-    0,
-    CALC_SET,
-    geopos,
-    0,
-    0
+    '',  // starname - empty string for planets
+    SEFLG_SWIEPH,  // epheflag
+    CALC_SET,  // rsmi
+    location.longitude,
+    location.latitude,
+    0,  // height
+    0,  // atpress
+    0   // attemp
   );
   
-  // Extract Julian day results
-  const sunriseJd = sunriseResult?.dret?.[0] || jd + 0.25;
-  const sunsetJd = sunsetResult?.dret?.[0] || jd + 0.75;
+  // Extract Julian day results - swe_rise_trans returns { transitTime, name } or { error }
+  const sunriseJd = sunriseResult?.transitTime || sunriseResult?.dret?.[0] || jd + 0.25;
+  const sunsetJd = sunsetResult?.transitTime || sunsetResult?.dret?.[0] || jd + 0.75;
   
   // Convert to dates
   const sunrise = julianToDate(sunriseJd, timezone);
@@ -114,7 +119,7 @@ function calculateTwilightTime(
   try {
     const sweph = getNativeModule();
     
-    const geopos = [location.longitude, location.latitude, 0];
+    const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2;
     const flags = isRise 
       ? (sweph.SE_CALC_RISE || 1)
       : (sweph.SE_CALC_SET || 2);
@@ -123,15 +128,20 @@ function calculateTwilightTime(
     const result = sweph.swe_rise_trans(
       jd,
       PlanetId.SUN,
-      0,
-      flags | (sweph.SE_BIT_CIVIL_TWILIGHT || 0x100),
-      geopos,
-      0,
-      0
+      '',  // starname - empty string for planets
+      SEFLG_SWIEPH,  // epheflag
+      flags | (sweph.SE_BIT_CIVIL_TWILIGHT || 0x100),  // rsmi
+      location.longitude,
+      location.latitude,
+      0,  // height
+      0,  // atpress
+      0   // attemp
     );
     
-    if (result?.dret?.[0]) {
-      return julianToDate(result.dret[0], timezone);
+    // swe_rise_trans returns { transitTime, name } or { error }
+    const transitTime = result?.transitTime || result?.dret?.[0];
+    if (transitTime) {
+      return julianToDate(transitTime, timezone);
     }
   } catch {
     // Twilight calculation failed

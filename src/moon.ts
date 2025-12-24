@@ -32,38 +32,50 @@ export function calculateMoonData(
   utcDate.setUTCHours(0, 0, 0, 0);
   const jd = dateToJulian(utcDate);
   
-  const geopos = [location.longitude, location.latitude, 0];
   const CALC_RISE = sweph.SE_CALC_RISE || 1;
   const CALC_SET = sweph.SE_CALC_SET || 2;
+  const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
   
-  // Calculate moonrise
+  // Calculate moonrise using correct swe_rise_trans signature:
+  // (tjd_ut, ipl, starname, epheflag, rsmi, longitude, latitude, height, atpress, attemp)
   const moonriseResult = sweph.swe_rise_trans(
     jd,
     PlanetId.MOON,
-    0,
-    CALC_RISE,
-    geopos,
-    0,
-    0
+    '',  // starname - empty string for planets
+    SEFLG_SWIEPH,  // epheflag
+    CALC_RISE,  // rsmi
+    location.longitude,
+    location.latitude,
+    0,  // height
+    0,  // atpress
+    0   // attemp
   );
   
   // Calculate moonset
   const moonsetResult = sweph.swe_rise_trans(
     jd,
     PlanetId.MOON,
-    0,
-    CALC_SET,
-    geopos,
-    0,
-    0
+    '',  // starname
+    SEFLG_SWIEPH,  // epheflag
+    CALC_SET,  // rsmi
+    location.longitude,
+    location.latitude,
+    0,  // height
+    0,  // atpress
+    0   // attemp
   );
   
-  const moonrise = moonriseResult?.dret?.[0]
-    ? julianToDate(moonriseResult.dret[0], timezone)
-    : null;
-  const moonset = moonsetResult?.dret?.[0]
-    ? julianToDate(moonsetResult.dret[0], timezone)
-    : null;
+  // swe_rise_trans returns { transitTime, name } or { error }
+  const moonrise = moonriseResult?.transitTime
+    ? julianToDate(moonriseResult.transitTime, timezone)
+    : moonriseResult?.dret?.[0]
+      ? julianToDate(moonriseResult.dret[0], timezone)
+      : null;
+  const moonset = moonsetResult?.transitTime
+    ? julianToDate(moonsetResult.transitTime, timezone)
+    : moonsetResult?.dret?.[0]
+      ? julianToDate(moonsetResult.dret[0], timezone)
+      : null;
   
   // Calculate moon phase using sun-moon elongation
   const { phase, illumination, age, phaseName } = calculateMoonPhase(date);
