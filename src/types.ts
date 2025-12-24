@@ -110,6 +110,8 @@ export interface MoonData {
   moonrise: Date | null;
   /** Moonset time (null if doesn't set that day) */
   moonset: Date | null;
+  /** Meridian transit time (moon's highest point) */
+  transit?: Date | null;
   /** Moon phase angle (0-360, 0=new, 180=full) */
   phase: number;
   /** Illumination percentage (0-100) */

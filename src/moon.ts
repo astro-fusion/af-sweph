@@ -34,6 +34,7 @@ export function calculateMoonData(
   
   const CALC_RISE = sweph.SE_CALC_RISE || 1;
   const CALC_SET = sweph.SE_CALC_SET || 2;
+  const CALC_MTRANS = sweph.SE_CALC_MTRANS || 4; // Meridian transit flag
   const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
   
   // Helper to call swe_rise_trans with fallback for different signatures
@@ -64,6 +65,9 @@ export function calculateMoonData(
   // Calculate moonset
   const moonsetResult = callRiseTrans(PlanetId.MOON, CALC_SET);
   
+  // Calculate moon meridian transit (upper culmination)
+  const transitResult = callRiseTrans(PlanetId.MOON, CALC_MTRANS);
+  
   // swe_rise_trans returns { transitTime, name } or { error }
   const moonrise = moonriseResult?.transitTime
     ? julianToDate(moonriseResult.transitTime, timezone)
@@ -74,6 +78,11 @@ export function calculateMoonData(
     ? julianToDate(moonsetResult.transitTime, timezone)
     : moonsetResult?.dret?.[0]
       ? julianToDate(moonsetResult.dret[0], timezone)
+      : null;
+  const transit = transitResult?.transitTime
+    ? julianToDate(transitResult.transitTime, timezone)
+    : transitResult?.dret?.[0]
+      ? julianToDate(transitResult.dret[0], timezone)
       : null;
   
   // Calculate moon phase using sun-moon elongation
@@ -98,6 +107,7 @@ export function calculateMoonData(
   return {
     moonrise,
     moonset,
+    transit,
     phase,
     illumination,
     age,
