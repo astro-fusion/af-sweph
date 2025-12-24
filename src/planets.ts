@@ -300,7 +300,7 @@ export function calculateSinglePlanet(
   // Az/Alt
   let azAlt = {};
   if (location) {
-    azAlt = calculateAzAlt(sweph, jd, location, {
+    azAlt = calculateAzAlt(jd, location, {
       longitude: normalizedLong,
       latitude,
       distance

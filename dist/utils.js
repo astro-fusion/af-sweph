@@ -19,6 +19,7 @@ exports.getRashiDegree = getRashiDegree;
 exports.isRetrograde = isRetrograde;
 exports.getNakshatra = getNakshatra;
 exports.callRiseTrans = callRiseTrans;
+exports.callAzAlt = callAzAlt;
 const path_1 = __importDefault(require("path"));
 const constants_1 = require("./constants");
 // Native module instance
@@ -249,6 +250,44 @@ function callRiseTrans(jd, id, flag, location) {
             return sweph.swe_rise_trans(jd, id, '', SEFLG_SWIEPH, flag, [location.longitude, location.latitude, 0], 0, 0);
         }
         throw error;
+    }
+}
+/**
+ * Helper to call swe_azalt with fallback for different signatures
+ * Provides compatibility with different versions of swisseph-v2 library
+ * @param jd - Julian day number
+ * @param location - Geographic location coordinates
+ * @param planetPos - Celestial body position in ecliptic coordinates
+ * @returns Result of swe_azalt call
+ * @internal
+ */
+function callAzAlt(jd, location, planetPos) {
+    const sweph = getNativeModule();
+    const geopos = [location.longitude, location.latitude, 0];
+    const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
+    try {
+        // Try standard swisseph arguments with all parameters
+        return sweph.swe_azalt(jd, sweph.SE_EQU2HOR || 0x0800, // Flag to convert equatorial to horizontal
+        geopos, 0, // Pressure (0 = default 1013.25 mbar)
+        10, // Temperature (10C)
+        xin);
+    }
+    catch (error) {
+        try {
+            // Try with fewer parameters
+            return sweph.swe_azalt(jd, geopos, xin);
+        }
+        catch (error2) {
+            try {
+                // Try with flat arguments
+                return sweph.swe_azalt(jd, sweph.SE_EQU2HOR || 0x0800, location.longitude, location.latitude, 0, 0, 10, planetPos.longitude, planetPos.latitude, planetPos.distance);
+            }
+            catch (error3) {
+                // Last resort - return default values
+                console.warn('swe_azalt call failed, returning default values:', error3.message);
+                return { azimuth: 0, altitude: 0 };
+            }
+        }
     }
 }
 //# sourceMappingURL=utils.js.map

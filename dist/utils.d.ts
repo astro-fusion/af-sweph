@@ -126,4 +126,21 @@ export declare function callRiseTrans(jd: number, id: number, flag: number, loca
     longitude: number;
     latitude: number;
 }): any;
+/**
+ * Helper to call swe_azalt with fallback for different signatures
+ * Provides compatibility with different versions of swisseph-v2 library
+ * @param jd - Julian day number
+ * @param location - Geographic location coordinates
+ * @param planetPos - Celestial body position in ecliptic coordinates
+ * @returns Result of swe_azalt call
+ * @internal
+ */
+export declare function callAzAlt(jd: number, location: {
+    longitude: number;
+    latitude: number;
+}, planetPos: {
+    longitude: number;
+    latitude: number;
+    distance: number;
+}): any;
 //# sourceMappingURL=utils.d.ts.map
