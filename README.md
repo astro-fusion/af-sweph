@@ -86,8 +86,10 @@ const planets = calculatePlanets(new Date('1990-01-15T14:30:00'), {
 
 // Access planet data
 const sun = planets.find(p => p.name === 'Sun');
-console.log(`${sun?.name}: ${sun?.longitude}° in ${RASHIS[sun!.rasi-1]?.name}`);
-console.log(`Retrograde: ${sun?.isRetrograde}, Combust: ${sun?.isCombust}`);
+if (sun) {
+  console.log(`${sun.name}: ${sun.longitude}° in ${RASHIS[sun.rasi-1]?.name}`);
+  console.log(`Retrograde: ${sun.isRetrograde}, Combust: ${sun.isCombust}`);
+}
 ```
 
 **Returns:** Array of `Planet` objects with ecliptic and horizontal coordinates.
@@ -140,6 +142,8 @@ console.log(`Midheaven (MC): ${lagna.houses[9]?.toFixed(2)}°`);
 Calculate house cusps only (convenience function).
 
 ```typescript
+const birthDate = new Date('1990-01-15T14:30:00');
+const location = { latitude: 27.7172, longitude: 85.324, timezone: 5.75 };
 const houses = calculateHouses(birthDate, location);
 console.log(`1st House: ${houses[0]}°, 7th House: ${houses[6]}°`);
 ```
@@ -271,6 +275,10 @@ The library includes legacy functions for migration from older @astrofusion/swep
 ```typescript
 import { createSwephCalculator, calculateKundaliPageData } from '@AstroFusion/sweph';
 
+const birthDate = new Date('1990-01-15T14:30:00');
+const timezone = 5.75;
+const location = { latitude: 27.7172, longitude: 85.324, timezone: 5.75 };
+
 // Legacy calculator interface
 const calculator = createSwephCalculator();
 const planets = await calculator.calculateAllPlanetPositions(birthDate, timezone);
@@ -313,6 +321,7 @@ import {
   calculatePlanets,
   calculateLagna,
   getHousePosition,
+  getNakshatra,
   AYANAMSA,
   HOUSE_SYSTEMS,
   RASHIS,
@@ -343,7 +352,7 @@ function createBirthChart(birthDate: Date, location: GeoLocation) {
     planets: planets.map(planet => ({
       ...planet,
       house: getHousePosition(planet.longitude, lagna.houses),
-      nakshatra: NAKSHATRAS.find(n => n.number === Math.floor(planet.longitude / (360/27)) + 1)
+      nakshatra: NAKSHATRAS.find(n => n.number === getNakshatra(planet.longitude).number)
     })),
     houses: lagna.houses.map((cusp, index) => ({
       number: index + 1,
@@ -370,9 +379,11 @@ const krishnamurtiPlanets = calculatePlanets(birthDate, { ayanamsa: AYANAMSA.KRI
 const sunLahiri = lahiriPlanets.find(p => p.name === 'Sun');
 const sunKP = krishnamurtiPlanets.find(p => p.name === 'Sun');
 
-console.log(`Sun position (Lahiri): ${sunLahiri?.longitude.toFixed(2)}°`);
-console.log(`Sun position (KP): ${sunKP?.longitude.toFixed(2)}°`);
-console.log(`Difference: ${(sunKP!.longitude - sunLahiri!.longitude).toFixed(2)}°`);
+if (sunLahiri && sunKP) {
+  console.log(`Sun position (Lahiri): ${sunLahiri.longitude.toFixed(2)}°`);
+  console.log(`Sun position (KP): ${sunKP.longitude.toFixed(2)}°`);
+  console.log(`Difference: ${(sunKP.longitude - sunLahiri.longitude).toFixed(2)}°`);
+}
 ```
 
 ### Moon Phase Tracking

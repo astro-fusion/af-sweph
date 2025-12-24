@@ -3,7 +3,7 @@
  * Constants for @AstroFusion/sweph
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LUNAR_MONTH_DAYS = exports.JULIAN_UNIX_EPOCH = exports.NAKSHATRAS = exports.MOON_PHASES = exports.CALC_FLAGS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.RASHIS = exports.VEDIC_PLANET_ORDER = exports.PLANETS = void 0;
+exports.AU_IN_KM = exports.DEFAULT_MOON_DISTANCE_KM = exports.LUNAR_MONTH_DAYS = exports.JULIAN_UNIX_EPOCH = exports.NAKSHATRAS = exports.MOON_PHASES = exports.CALC_FLAGS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.RASHIS = exports.VEDIC_PLANET_ORDER = exports.PLANETS = void 0;
 const types_1 = require("./types");
 /**
  * Planet definitions for Vedic astrology (9 grahas)
@@ -122,4 +122,12 @@ exports.JULIAN_UNIX_EPOCH = 2440587.5;
  * Average length of a lunar month in days
  */
 exports.LUNAR_MONTH_DAYS = 29.530588853;
+/**
+ * Default average Earth-Moon distance in kilometers
+ */
+exports.DEFAULT_MOON_DISTANCE_KM = 384400;
+/**
+ * Astronomical Unit in kilometers (1 AU = 149,597,870.7 km)
+ */
+exports.AU_IN_KM = 149597870.7;
 //# sourceMappingURL=constants.js.map

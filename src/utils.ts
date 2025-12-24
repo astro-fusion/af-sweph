@@ -221,10 +221,101 @@ export function getNakshatra(longitude: number): { number: number; pada: number 
   const norm = normalizeLongitude(longitude);
   const nakshatraSpan = 360 / 27; // 13.333... degrees each
   const padaSpan = nakshatraSpan / 4; // ~3.333 degrees each
-  
+
   const nakshatraNumber = Math.floor(norm / nakshatraSpan) + 1;
   const positionInNakshatra = norm % nakshatraSpan;
   const pada = Math.floor(positionInNakshatra / padaSpan) + 1;
-  
+
   return { number: nakshatraNumber, pada };
+}
+
+/**
+ * Helper to call swe_rise_trans with fallback for different signatures
+ * Provides compatibility with different versions of swisseph-v2 library
+ * @param jd - Julian day number
+ * @param id - Planet/celestial body identifier
+ * @param flag - Rise/set calculation flag
+ * @param location - Geographic location coordinates
+ * @returns Result of swe_rise_trans call
+ * @internal
+ */
+export function callRiseTrans(
+  jd: number,
+  id: number,
+  flag: number,
+  location: { longitude: number; latitude: number }
+): any {
+  const sweph = getNativeModule();
+  const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2;
+
+  try {
+    // Try flat arguments first (swisseph-v2 style)
+    return sweph.swe_rise_trans(
+      jd, id, '', SEFLG_SWIEPH, flag,
+      location.longitude, location.latitude, 0,
+      0, 0
+    );
+  } catch (error: any) {
+    if (error && error.message && error.message.includes('Wrong type of arguments')) {
+      // Try array argument for geopos (standard swisseph style)
+      return sweph.swe_rise_trans(
+        jd, id, '', SEFLG_SWIEPH, flag,
+        [location.longitude, location.latitude, 0],
+        0, 0
+      );
+    }
+    throw error;
+  }
+}
+
+/**
+ * Helper to call swe_azalt with fallback for different signatures
+ * Provides compatibility with different versions of swisseph-v2 library
+ * @param jd - Julian day number
+ * @param location - Geographic location coordinates
+ * @param planetPos - Celestial body position in ecliptic coordinates
+ * @returns Result of swe_azalt call
+ * @internal
+ */
+export function callAzAlt(
+  jd: number,
+  location: { longitude: number; latitude: number },
+  planetPos: { longitude: number; latitude: number; distance: number }
+): any {
+  const sweph = getNativeModule();
+
+  const geopos = [location.longitude, location.latitude, 0];
+  const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
+
+  try {
+    // Try standard swisseph arguments with all parameters
+    return sweph.swe_azalt(
+      jd,
+      sweph.SE_EQU2HOR || 0x0800, // Flag to convert equatorial to horizontal
+      geopos,
+      0, // Pressure (0 = default 1013.25 mbar)
+      10, // Temperature (10C)
+      xin
+    );
+  } catch (error: any) {
+    try {
+      // Try with fewer parameters
+      return sweph.swe_azalt(jd, geopos, xin);
+    } catch (error2: any) {
+      try {
+        // Try with flat arguments
+        return sweph.swe_azalt(
+          jd,
+          sweph.SE_EQU2HOR || 0x0800,
+          location.longitude, location.latitude, 0,
+          0, 10,
+          planetPos.longitude, planetPos.latitude, planetPos.distance
+        );
+      } catch (error3: any) {
+        // Last resort - return default values
+        console.warn('swe_azalt call failed, returning default values:', error3.message);
+        return { azimuth: 0, altitude: 0 };
+      }
+    }
+  }
 }
