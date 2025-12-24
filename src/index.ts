@@ -39,6 +39,7 @@ export {
   getJulianDay,
   dateToJulian,
   julianToDate,
+  getNativeModule,
 } from './utils';
 
 // Constants

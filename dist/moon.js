@@ -10,10 +10,21 @@ const types_1 = require("./types");
 const constants_1 = require("./constants");
 const utils_1 = require("./utils");
 /**
- * Calculate moon data including rise/set and phase
- * @param date - Date for calculation
- * @param location - Geographic location
- * @returns Moon data including rise, set, phase, illumination
+ * Calculate comprehensive moon data including rise/set times and phase
+ * @param date - Date for moon calculation (local time)
+ * @param location - Geographic location coordinates
+ * @returns MoonData object with rise/set times, phase, and illumination
+ * @example
+ * ```typescript
+ * const moonData = calculateMoonData(new Date(), {
+ *   latitude: 27.7172,
+ *   longitude: 85.324,
+ *   timezone: 5.75
+ * });
+ *
+ * console.log(`Moonrise: ${moonData.moonrise?.toLocaleTimeString()}`);
+ * console.log(`Phase: ${moonData.phaseName} (${moonData.illumination.toFixed(1)}% illuminated)`);
+ * ```
  */
 function calculateMoonData(date, location) {
     (0, utils_1.initializeSweph)();
@@ -23,19 +34,37 @@ function calculateMoonData(date, location) {
     const utcDate = new Date(date.getTime() - timezone * 60 * 60 * 1000);
     utcDate.setUTCHours(0, 0, 0, 0);
     const jd = (0, utils_1.dateToJulian)(utcDate);
-    const geopos = [location.longitude, location.latitude, 0];
     const CALC_RISE = sweph.SE_CALC_RISE || 1;
     const CALC_SET = sweph.SE_CALC_SET || 2;
-    // Calculate moonrise
-    const moonriseResult = sweph.swe_rise_trans(jd, types_1.PlanetId.MOON, 0, CALC_RISE, geopos, 0, 0);
+    const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2; // Swiss Ephemeris flag
+    // Calculate moonrise using correct swe_rise_trans signature:
+    // (tjd_ut, ipl, starname, epheflag, rsmi, longitude, latitude, height, atpress, attemp)
+    const moonriseResult = sweph.swe_rise_trans(jd, types_1.PlanetId.MOON, '', // starname - empty string for planets
+    SEFLG_SWIEPH, // epheflag
+    CALC_RISE, // rsmi
+    location.longitude, location.latitude, 0, // height
+    0, // atpress
+    0 // attemp
+    );
     // Calculate moonset
-    const moonsetResult = sweph.swe_rise_trans(jd, types_1.PlanetId.MOON, 0, CALC_SET, geopos, 0, 0);
-    const moonrise = moonriseResult?.dret?.[0]
-        ? (0, utils_1.julianToDate)(moonriseResult.dret[0], timezone)
-        : null;
-    const moonset = moonsetResult?.dret?.[0]
-        ? (0, utils_1.julianToDate)(moonsetResult.dret[0], timezone)
-        : null;
+    const moonsetResult = sweph.swe_rise_trans(jd, types_1.PlanetId.MOON, '', // starname
+    SEFLG_SWIEPH, // epheflag
+    CALC_SET, // rsmi
+    location.longitude, location.latitude, 0, // height
+    0, // atpress
+    0 // attemp
+    );
+    // swe_rise_trans returns { transitTime, name } or { error }
+    const moonrise = moonriseResult?.transitTime
+        ? (0, utils_1.julianToDate)(moonriseResult.transitTime, timezone)
+        : moonriseResult?.dret?.[0]
+            ? (0, utils_1.julianToDate)(moonriseResult.dret[0], timezone)
+            : null;
+    const moonset = moonsetResult?.transitTime
+        ? (0, utils_1.julianToDate)(moonsetResult.transitTime, timezone)
+        : moonsetResult?.dret?.[0]
+            ? (0, utils_1.julianToDate)(moonsetResult.dret[0], timezone)
+            : null;
     // Calculate moon phase using sun-moon elongation
     const { phase, illumination, age, phaseName } = calculateMoonPhase(date);
     return {
@@ -48,9 +77,15 @@ function calculateMoonData(date, location) {
     };
 }
 /**
- * Calculate current moon phase
- * @param date - Date for calculation
- * @returns Moon phase information
+ * Calculate current moon phase and illumination
+ * @param date - Date for moon phase calculation
+ * @returns Object with phase angle, illumination percentage, age in days, and phase name
+ * @example
+ * ```typescript
+ * const phase = calculateMoonPhase(new Date());
+ * console.log(`${phase.phaseName}: ${phase.illumination.toFixed(1)}% illuminated`);
+ * console.log(`Moon age: ${phase.age.toFixed(1)} days`);
+ * ```
  */
 function calculateMoonPhase(date) {
     (0, utils_1.initializeSweph)();
@@ -87,9 +122,15 @@ function calculateMoonPhase(date) {
     return { phase, illumination, age, phaseName };
 }
 /**
- * Calculate dates of next moon phases
- * @param date - Starting date
- * @returns Dates of upcoming moon phases
+ * Calculate dates of upcoming moon phases
+ * @param date - Starting date to search from
+ * @returns NextMoonPhases object with dates of next new moon, full moon, etc.
+ * @example
+ * ```typescript
+ * const phases = calculateNextMoonPhases(new Date());
+ * console.log(`Next Full Moon: ${phases.fullMoon.toDateString()}`);
+ * console.log(`Next New Moon: ${phases.newMoon.toDateString()}`);
+ * ```
  */
 function calculateNextMoonPhases(date) {
     (0, utils_1.initializeSweph)();
