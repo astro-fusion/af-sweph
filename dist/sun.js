@@ -138,15 +138,8 @@ function calculateSolarNoon(date, location) {
  * @returns Object with azimuth (0°=North, 90°=East) and altitude (degrees above horizon)
  * @internal
  */
-function calculateAzAlt(sweph, jd, location, planetPos) {
-    // swe_azalt expects: tjd_ut, calc_flag, geopos, atpress, attemp, xin
-    // xin: array of 3 doubles: longitude, latitude, distance
-    const geopos = [location.longitude, location.latitude, 0];
-    const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
-    const result = sweph.swe_azalt(jd, sweph.SE_EQU2HOR, // Flag to convert equatorial to horizontal
-    geopos, 0, // Pressure (0 = default 1013.25 mbar)
-    10, // Temperature (10C)
-    xin);
+function calculateAzAlt(jd, location, planetPos) {
+    const result = (0, utils_1.callAzAlt)(jd, location, planetPos);
     return {
         azimuth: result.azimuth || result[0] || 0,
         altitude: result.altitude || result[1] || 0
@@ -190,7 +183,7 @@ function calculateSunPath(date, location) {
                 latitude = result.xx[1] || 0;
                 distance = result.xx[2] || 0;
             }
-            const azAlt = calculateAzAlt(sweph, jd, location, { longitude, latitude, distance });
+            const azAlt = calculateAzAlt(jd, location, { longitude, latitude, distance });
             path.push({
                 time,
                 azimuth: azAlt.azimuth,

@@ -65,8 +65,16 @@ function calculateMoonData(date, location) {
     const moonCalcResult = sweph.swe_calc_ut(jd, types_1.PlanetId.MOON, 0);
     let distance = constants_1.DEFAULT_MOON_DISTANCE_KM; // Default average Earth-Moon distance in km
     if (moonCalcResult) {
-        const resultPayload = Array.isArray(moonCalcResult) ? moonCalcResult : moonCalcResult.xx;
-        const distanceAU = resultPayload?.[2] || 0;
+        let distanceAU = 0;
+        if (Array.isArray(moonCalcResult)) {
+            distanceAU = moonCalcResult[2] || 0;
+        }
+        else if (moonCalcResult.xx) {
+            distanceAU = moonCalcResult.xx[2] || 0;
+        }
+        else if (typeof moonCalcResult.distance === 'number') {
+            distanceAU = moonCalcResult.distance;
+        }
         if (distanceAU > 0) {
             // Convert AU to km
             distance = distanceAU * constants_1.AU_IN_KM;
@@ -103,11 +111,17 @@ function calculateMoonPhase(date) {
     else if (sunResult?.xx) {
         sunLong = sunResult.xx[0] || 0;
     }
+    else if (typeof sunResult?.longitude === 'number') {
+        sunLong = sunResult.longitude;
+    }
     if (Array.isArray(moonResult)) {
         moonLong = moonResult[0] || 0;
     }
     else if (moonResult?.xx) {
         moonLong = moonResult.xx[0] || 0;
+    }
+    else if (typeof moonResult?.longitude === 'number') {
+        moonLong = moonResult.longitude;
     }
     // Phase angle is Moon - Sun (0-360)
     let phase = moonLong - sunLong;
