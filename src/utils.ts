@@ -286,9 +286,10 @@ export function callAzAlt(
 
   const geopos = [location.longitude, location.latitude, 0];
   const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
+  const errors: string[] = [];
 
+  // Attempt 1: Standard swisseph arguments with all parameters
   try {
-    // Try standard swisseph arguments with all parameters
     return sweph.swe_azalt(
       jd,
       sweph.SE_EQU2HOR || 0x0800, // Flag to convert equatorial to horizontal
@@ -298,24 +299,31 @@ export function callAzAlt(
       xin
     );
   } catch (error: any) {
-    try {
-      // Try with fewer parameters
-      return sweph.swe_azalt(jd, geopos, xin);
-    } catch (error2: any) {
-      try {
-        // Try with flat arguments
-        return sweph.swe_azalt(
-          jd,
-          sweph.SE_EQU2HOR || 0x0800,
-          location.longitude, location.latitude, 0,
-          0, 10,
-          planetPos.longitude, planetPos.latitude, planetPos.distance
-        );
-      } catch (error3: any) {
-        // Last resort - return default values
-        console.warn('swe_azalt call failed, returning default values:', error3.message);
-        return { azimuth: 0, altitude: 0 };
-      }
-    }
+    errors.push(`Attempt 1 failed: ${error.message}`);
   }
+
+  // Attempt 2: Fewer parameters
+  try {
+    return sweph.swe_azalt(jd, geopos, xin);
+  } catch (error: any) {
+    errors.push(`Attempt 2 failed: ${error.message}`);
+  }
+
+  // Attempt 3: Flat arguments
+  try {
+    return sweph.swe_azalt(
+      jd,
+      sweph.SE_EQU2HOR || 0x0800,
+      location.longitude, location.latitude, 0,
+      0, 10,
+      planetPos.longitude, planetPos.latitude, planetPos.distance
+    );
+  } catch (error: any) {
+    errors.push(`Attempt 3 failed: ${error.message}`);
+  }
+
+  // All attempts failed
+  console.warn('swe_azalt call failed. All attempts failed. Errors:', errors.join('; '));
+  // Consider returning null or throwing an error to signal failure explicitly
+  return { azimuth: 0, altitude: 0 };
 }

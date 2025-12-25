@@ -265,29 +265,34 @@ function callAzAlt(jd, location, planetPos) {
     const sweph = getNativeModule();
     const geopos = [location.longitude, location.latitude, 0];
     const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
+    const errors = [];
+    // Attempt 1: Standard swisseph arguments with all parameters
     try {
-        // Try standard swisseph arguments with all parameters
         return sweph.swe_azalt(jd, sweph.SE_EQU2HOR || 0x0800, // Flag to convert equatorial to horizontal
         geopos, 0, // Pressure (0 = default 1013.25 mbar)
         10, // Temperature (10C)
         xin);
     }
     catch (error) {
-        try {
-            // Try with fewer parameters
-            return sweph.swe_azalt(jd, geopos, xin);
-        }
-        catch (error2) {
-            try {
-                // Try with flat arguments
-                return sweph.swe_azalt(jd, sweph.SE_EQU2HOR || 0x0800, location.longitude, location.latitude, 0, 0, 10, planetPos.longitude, planetPos.latitude, planetPos.distance);
-            }
-            catch (error3) {
-                // Last resort - return default values
-                console.warn('swe_azalt call failed, returning default values:', error3.message);
-                return { azimuth: 0, altitude: 0 };
-            }
-        }
+        errors.push(`Attempt 1 failed: ${error.message}`);
     }
+    // Attempt 2: Fewer parameters
+    try {
+        return sweph.swe_azalt(jd, geopos, xin);
+    }
+    catch (error) {
+        errors.push(`Attempt 2 failed: ${error.message}`);
+    }
+    // Attempt 3: Flat arguments
+    try {
+        return sweph.swe_azalt(jd, sweph.SE_EQU2HOR || 0x0800, location.longitude, location.latitude, 0, 0, 10, planetPos.longitude, planetPos.latitude, planetPos.distance);
+    }
+    catch (error) {
+        errors.push(`Attempt 3 failed: ${error.message}`);
+    }
+    // All attempts failed
+    console.warn('swe_azalt call failed. All attempts failed. Errors:', errors.join('; '));
+    // Consider returning null or throwing an error to signal failure explicitly
+    return { azimuth: 0, altitude: 0 };
 }
 //# sourceMappingURL=utils.js.map
