@@ -27,7 +27,7 @@
     "prebuild": "echo 'This is a JavaScript wrapper around swisseph-v2 - no native compilation needed'",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src",
     "prepublishOnly": "npm run build",
     "validate-dist": "node -e \"require('./dist/index.js'); console.log('✅ Dist files are valid');\""
   },
