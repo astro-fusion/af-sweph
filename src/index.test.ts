@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as sweph from './index';
 
 describe('@AstroFusion/sweph', () => {
