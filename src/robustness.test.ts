@@ -20,7 +20,14 @@ describe('SWEPH Robustness Tests', () => {
   };
   const timeZoneOffset = 5.75; // UTC+5:45
 
-  it('should initialize library successfully', async () => {
+  // Common location options for reuse across tests
+  const locationOptions = {
+    latitude: location.latitude,
+    longitude: location.longitude,
+    timezone: timeZoneOffset
+  };
+
+  it('should initialize library successfully', () => {
     // Test that we can call a basic calculation function
     const planets = calculatePlanets(testDate);
     expect(planets).toBeDefined();
@@ -29,11 +36,7 @@ describe('SWEPH Robustness Tests', () => {
 
   describe('Sun Calculations', () => {
     it('should calculate sun times without error', async () => {
-      const result = await calculateSunTimes(testDate, {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        timezone: timeZoneOffset
-      });
+      const result = await calculateSunTimes(testDate, locationOptions);
 
       expect(result).toBeDefined();
       expect(result.sunrise).toBeInstanceOf(Date);
@@ -44,11 +47,7 @@ describe('SWEPH Robustness Tests', () => {
     });
 
     it('should calculate sun path', async () => {
-      const path = await calculateSunPath(testDate, {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        timezone: timeZoneOffset
-      });
+      const path = await calculateSunPath(testDate, locationOptions);
       expect(Array.isArray(path)).toBe(true);
       expect(path.length).toBeGreaterThan(0);
       expect(path[0].azimuth).toBeDefined();
@@ -58,11 +57,7 @@ describe('SWEPH Robustness Tests', () => {
 
   describe('Moon Calculations', () => {
     it('should calculate moon times', async () => {
-      const result = await calculateMoonData(testDate, {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        timezone: timeZoneOffset
-      });
+      const result = await calculateMoonData(testDate, locationOptions);
 
       expect(result).toBeDefined();
       // Moonrise/set can be null on some days, but the object should exist
@@ -90,11 +85,7 @@ describe('SWEPH Robustness Tests', () => {
       const result = await calculatePlanetRiseSetTimes(
         PlanetId.JUPITER,
         testDate,
-        {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          timezone: timeZoneOffset
-        }
+        locationOptions
       );
 
       expect(result).toBeDefined();
@@ -119,15 +110,11 @@ describe('SWEPH Robustness Tests', () => {
       const result = await calculatePlanetRiseSetTimes(
           planet,
           testDate,
-          {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            timezone: timeZoneOffset
-          }
+          locationOptions
       );
       expect(result).toBeDefined();
     });
-    it('should include outer planets when requested', async () => {
+    it('should include outer planets when requested', () => {
       // Use direct function for new features
       const planets = calculatePlanets(testDate, {
         includeOuterPlanets: true,
@@ -140,7 +127,7 @@ describe('SWEPH Robustness Tests', () => {
       expect(planets.length).toBeGreaterThan(9);
     });
 
-    it('should exclude outer planets by default', async () => {
+    it('should exclude outer planets by default', () => {
       // Use direct function for new features
       const planets = calculatePlanets(testDate, {
         location
