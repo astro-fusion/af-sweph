@@ -7,9 +7,14 @@ on:
     branches: [main]
 
 jobs:
-  # Basic build and test (just Ubuntu + Node 18 for now)
+  # Build prebuilds for all platforms (Linux, macOS, Windows)
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -35,5 +40,41 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build prebuild
+      - name: Build prebuilds
         run: npm run prebuild
+
+      - name: Upload prebuilds
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuilds-${{ matrix.os }}
+          path: prebuilds/
+          if-no-files-found: warn
+
+  # Consolidate all prebuilds into one artifact
+  consolidate-prebuilds:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v4
+        with:
+          path: prebuilds-all
+          pattern: prebuilds-*
+
+      - name: Consolidate prebuilds
+        run: |
+          mkdir -p prebuilds
+          for dir in prebuilds-all/*/; do
+            cp -r "$dir"* prebuilds/ 2>/dev/null || true
+          done
+          echo "Prebuilds consolidated:"
+          ls -la prebuilds/
+
+      - name: Upload consolidated prebuilds
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuilds-all-platforms
+          path: prebuilds/
