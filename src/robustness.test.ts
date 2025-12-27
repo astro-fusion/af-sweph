@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  createSwephCalculator, 
+import {
   PlanetId,
-  PlanetaryCalculationProvider,
-  calculatePlanets
+  calculatePlanets,
+  calculateSunTimes,
+  calculateSunPath,
+  calculateMoonData,
+  calculateMoonPhase,
+  calculateNextMoonPhases,
+  calculatePlanetRiseSetTimes
 } from './index';
 
 describe('SWEPH Robustness Tests', () => {
-  let calculator: PlanetaryCalculationProvider;
   const testDate = new Date('2025-01-01T12:00:00Z');
   // Kathmandu, Nepal
   const location = {
@@ -17,28 +20,20 @@ describe('SWEPH Robustness Tests', () => {
   };
   const timeZoneOffset = 5.75; // UTC+5:45
 
-  // Ensure calculator is initialized before running tests
-  const getCalculator = async () => {
-    if (!calculator) {
-      calculator = await createSwephCalculator();
-    }
-    return calculator;
-  };
-
-  it('should initialize calculator successfully', async () => {
-    const calc = await getCalculator();
-    expect(calc).toBeDefined();
+  it('should initialize library successfully', async () => {
+    // Test that we can call a basic calculation function
+    const planets = calculatePlanets(testDate);
+    expect(planets).toBeDefined();
+    expect(Array.isArray(planets)).toBe(true);
   });
 
   describe('Sun Calculations', () => {
     it('should calculate sun times without error', async () => {
-      const calc = await getCalculator();
-      const result = await calc.calculateSunTimes(
-        testDate,
-        location.latitude,
-        location.longitude,
-        timeZoneOffset
-      );
+      const result = await calculateSunTimes(testDate, {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timezone: timeZoneOffset
+      });
 
       expect(result).toBeDefined();
       expect(result.sunrise).toBeInstanceOf(Date);
@@ -49,13 +44,11 @@ describe('SWEPH Robustness Tests', () => {
     });
 
     it('should calculate sun path', async () => {
-      const calc = await getCalculator();
-      const path = await calc.calculateDailySunPath(
-        testDate,
-        location.latitude,
-        location.longitude,
-        timeZoneOffset
-      );
+      const path = await calculateSunPath(testDate, {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timezone: timeZoneOffset
+      });
       expect(Array.isArray(path)).toBe(true);
       expect(path.length).toBeGreaterThan(0);
       expect(path[0].azimuth).toBeDefined();
@@ -65,14 +58,12 @@ describe('SWEPH Robustness Tests', () => {
 
   describe('Moon Calculations', () => {
     it('should calculate moon times', async () => {
-      const calc = await getCalculator();
-      const result = await calc.calculateMoonTimes(
-        testDate,
-        location.latitude,
-        location.longitude,
-        timeZoneOffset
-      );
-      
+      const result = await calculateMoonData(testDate, {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timezone: timeZoneOffset
+      });
+
       expect(result).toBeDefined();
       // Moonrise/set can be null on some days, but the object should exist
       if (result.moonrise) expect(result.moonrise).toBeInstanceOf(Date);
@@ -80,16 +71,14 @@ describe('SWEPH Robustness Tests', () => {
     });
 
     it('should calculate moon phase', async () => {
-      const calc = await getCalculator();
-      const phase = await calc.calculateMoonPhase(testDate);
+      const phase = await calculateMoonPhase(testDate);
       expect(phase).toBeDefined();
       expect(typeof phase.phase).toBe('number');
       expect(typeof phase.illumination).toBe('number');
     });
 
     it('should calculate next moon phases', async () => {
-      const calc = await getCalculator();
-      const phases = await calc.calculateNextMoonPhases(testDate);
+      const phases = await calculateNextMoonPhases(testDate);
       expect(phases).toBeDefined();
       expect(phases.newMoon).toBeInstanceOf(Date);
       expect(phases.fullMoon).toBeInstanceOf(Date);
@@ -98,13 +87,14 @@ describe('SWEPH Robustness Tests', () => {
 
   describe('Planet Calculations', () => {
     it('should calculate rise/set for Jupiter', async () => {
-      const calc = await getCalculator();
-      const result = await calc.calculatePlanetRiseSetTimes(
+      const result = await calculatePlanetRiseSetTimes(
         PlanetId.JUPITER,
         testDate,
-        location.latitude,
-        location.longitude,
-        timeZoneOffset
+        {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          timezone: timeZoneOffset
+        }
       );
 
       expect(result).toBeDefined();
@@ -114,29 +104,28 @@ describe('SWEPH Robustness Tests', () => {
       if (result.transit) expect(result.transit).toBeInstanceOf(Date);
     });
 
-    it('should calculate rise/set for all planets', async () => {
-      const calc = await getCalculator();
-      const planets = [
-        PlanetId.MERCURY, 
-        PlanetId.VENUS, 
-        PlanetId.MARS, 
-        PlanetId.JUPITER, 
-        PlanetId.SATURN,
-        PlanetId.URANUS,
-        PlanetId.NEPTUNE,
-        PlanetId.PLUTO
-      ];
+    const planetsForRiseSetTest = [
+      PlanetId.MERCURY,
+      PlanetId.VENUS,
+      PlanetId.MARS,
+      PlanetId.JUPITER,
+      PlanetId.SATURN,
+      PlanetId.URANUS,
+      PlanetId.NEPTUNE,
+      PlanetId.PLUTO
+    ];
 
-      for (const planet of planets) {
-        const result = await calc.calculatePlanetRiseSetTimes(
-            planet,
-            testDate,
-            location.latitude,
-            location.longitude,
-            timeZoneOffset
-        );
-        expect(result).toBeDefined();
-      }
+    it.each(planetsForRiseSetTest)('should calculate rise/set for planet %s', async (planet) => {
+      const result = await calculatePlanetRiseSetTimes(
+          planet,
+          testDate,
+          {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            timezone: timeZoneOffset
+          }
+      );
+      expect(result).toBeDefined();
     });
     it('should include outer planets when requested', async () => {
       // Use direct function for new features
@@ -159,6 +148,28 @@ describe('SWEPH Robustness Tests', () => {
 
       expect(planets.some(p => p.name === 'Uranus')).toBe(false);
       expect(planets.length).toBe(9); // 7 planets + Rahu + Ketu
+    });
+  });
+
+  describe('Legacy API Compatibility', () => {
+    it('should maintain backward compatibility with legacy calculator', async () => {
+      // Import legacy functions for compatibility testing
+      const { createSwephCalculator } = await import('./legacy');
+      const calc = createSwephCalculator();
+
+      expect(calc).toBeDefined();
+      expect(typeof calc.calculateSunTimes).toBe('function');
+      expect(typeof calc.calculatePlanetRiseSetTimes).toBe('function');
+
+      // Test that legacy methods still work
+      const sunTimes = await calc.calculateSunTimes(
+        testDate,
+        location.latitude,
+        location.longitude,
+        timeZoneOffset
+      );
+      expect(sunTimes).toBeDefined();
+      expect(sunTimes.sunrise).toBeInstanceOf(Date);
     });
   });
 });
