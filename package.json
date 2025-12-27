@@ -24,7 +24,7 @@
   "scripts": {
     "build": "tsc",
     "build:esm": "tsc -p tsconfig.esm.json && mkdir -p dist-esm-final && mv dist-esm/*.js dist-esm-final/ && for file in dist-esm-final/*.js; do mv \"$file\" \"${file%.js}.mjs\"; done && mv dist-esm-final/* dist/ && rm -rf dist-esm dist-esm-final",
-    "prebuild": "prebuildify --napi --strip",
+    "prebuild": "echo 'This is a JavaScript wrapper around swisseph-v2 - no native compilation needed'",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",
