@@ -23,11 +23,11 @@
   ],
   "scripts": {
     "build": "tsc",
-    "build:esm": "tsc -p tsconfig.esm.json",
-    "prebuild": "npm run build && npm run build:esm && npm run validate-dist",
+    "build:esm": "tsc -p tsconfig.esm.json && node -e \"const fs = require('fs'); const path = require('path'); const distDir = 'dist'; const esmDir = 'dist-esm'; if (fs.existsSync(esmDir)) { const files = fs.readdirSync(esmDir).filter(f => f.endsWith('.js')); files.forEach(file => { const src = path.join(esmDir, file); const dest = path.join(distDir, file.replace('.js', '.mjs')); if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, {recursive: true}); fs.renameSync(src, dest); }); fs.rmSync(esmDir, {recursive: true, force: true}); }\"",
+    "prebuild": "echo 'This is a JavaScript wrapper around swisseph-v2 - no native compilation needed'",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src",
     "prepublishOnly": "npm run build",
     "validate-dist": "node -e \"require('./dist/index.js'); console.log('✅ Dist files are valid');\""
   },
@@ -59,14 +59,14 @@
     "swisseph-v2": "^1.0.4"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.55.0",
-    "prebuildify": "^6.0.0",
-    "prebuildify-cross": "^5.0.0",
-    "typescript": "^5.3.0",
-    "vitest": "^1.0.0"
+    "@types/node": "^20.19.27",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "eslint": "^9.39.2",
+    "prebuildify": "^6.0.1",
+    "prebuildify-cross": "^5.1.1",
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.1"
   },
   "publishConfig": {
     "access": "public"

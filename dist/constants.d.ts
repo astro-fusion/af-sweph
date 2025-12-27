@@ -93,6 +93,22 @@ export declare const VEDIC_PLANET_ORDER: readonly [{
     readonly sanskrit: "Ketu";
 }];
 /**
+ * Outer planets (Western astrology)
+ */
+export declare const OUTER_PLANETS: readonly [{
+    readonly id: PlanetId.URANUS;
+    readonly name: "Uranus";
+    readonly sanskrit: "Arun";
+}, {
+    readonly id: PlanetId.NEPTUNE;
+    readonly name: "Neptune";
+    readonly sanskrit: "Varun";
+}, {
+    readonly id: PlanetId.PLUTO;
+    readonly name: "Pluto";
+    readonly sanskrit: "Yama";
+}];
+/**
  * Rashi (zodiac sign) names
  */
 export declare const RASHIS: readonly [{

@@ -3,7 +3,7 @@
  * Constants for @AstroFusion/sweph
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AU_IN_KM = exports.DEFAULT_MOON_DISTANCE_KM = exports.LUNAR_MONTH_DAYS = exports.JULIAN_UNIX_EPOCH = exports.NAKSHATRAS = exports.MOON_PHASES = exports.CALC_FLAGS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.RASHIS = exports.VEDIC_PLANET_ORDER = exports.PLANETS = void 0;
+exports.AU_IN_KM = exports.DEFAULT_MOON_DISTANCE_KM = exports.LUNAR_MONTH_DAYS = exports.JULIAN_UNIX_EPOCH = exports.NAKSHATRAS = exports.MOON_PHASES = exports.CALC_FLAGS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.RASHIS = exports.OUTER_PLANETS = exports.VEDIC_PLANET_ORDER = exports.PLANETS = void 0;
 const types_1 = require("./types");
 /**
  * Planet definitions for Vedic astrology (9 grahas)
@@ -32,6 +32,14 @@ exports.VEDIC_PLANET_ORDER = [
     exports.PLANETS.SATURN,
     exports.PLANETS.RAHU,
     exports.PLANETS.KETU,
+];
+/**
+ * Outer planets (Western astrology)
+ */
+exports.OUTER_PLANETS = [
+    { id: types_1.PlanetId.URANUS, name: 'Uranus', sanskrit: 'Arun' },
+    { id: types_1.PlanetId.NEPTUNE, name: 'Neptune', sanskrit: 'Varun' },
+    { id: types_1.PlanetId.PLUTO, name: 'Pluto', sanskrit: 'Yama' },
 ];
 /**
  * Rashi (zodiac sign) names
