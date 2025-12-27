@@ -182,6 +182,8 @@ export interface CalculationOptions {
   houseSystem?: string;
   /** Include speed/retrograde calculations */
   includeSpeed?: boolean;
+  /** Include outer planets (Uranus, Neptune, Pluto) */
+  includeOuterPlanets?: boolean;
   /** Geographic location for topocentric/horizontal calculations */
   location?: GeoLocation;
 }

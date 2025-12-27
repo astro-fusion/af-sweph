@@ -3,7 +3,7 @@
  */
 
 import type { Planet, CalculationOptions, GeoLocation } from './types';
-import { VEDIC_PLANET_ORDER, CALC_FLAGS, RASHIS } from './constants';
+import { VEDIC_PLANET_ORDER, OUTER_PLANETS, CALC_FLAGS, RASHIS } from './constants';
 import {
   initializeSweph,
   getNativeModule,
@@ -116,7 +116,13 @@ export function calculatePlanets(
   // First pass: Calculate positions
   const calculatedPlanets: any[] = [];
   
-  for (const planetDef of VEDIC_PLANET_ORDER) {
+  // Determine which planets to calculate
+  const planetsToCalc = [...VEDIC_PLANET_ORDER];
+  if (options.includeOuterPlanets) {
+    planetsToCalc.push(...OUTER_PLANETS);
+  }
+  
+  for (const planetDef of planetsToCalc) {
     if (planetDef.name === 'Ketu') continue;
     
     const result = sweph.swe_calc_ut(jd, planetDef.id, flags);

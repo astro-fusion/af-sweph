@@ -35,6 +35,15 @@ export const VEDIC_PLANET_ORDER = [
 ] as const;
 
 /**
+ * Outer planets (Western astrology)
+ */
+export const OUTER_PLANETS = [
+  { id: PlanetId.URANUS, name: 'Uranus', sanskrit: 'Arun' },
+  { id: PlanetId.NEPTUNE, name: 'Neptune', sanskrit: 'Varun' },
+  { id: PlanetId.PLUTO, name: 'Pluto', sanskrit: 'Yama' },
+] as const;
+
+/**
  * Rashi (zodiac sign) names
  */
 export const RASHIS = [
