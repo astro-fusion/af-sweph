@@ -1,13 +1,8 @@
-"use strict";
 /**
  * Planet Calculations for @AstroFusion/sweph
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculatePlanets = calculatePlanets;
-exports.calculateSinglePlanet = calculateSinglePlanet;
-exports.calculatePlanetRiseSetTimes = calculatePlanetRiseSetTimes;
-const constants_1 = require("./constants");
-const utils_1 = require("./utils");
+import { VEDIC_PLANET_ORDER, OUTER_PLANETS, CALC_FLAGS } from './constants';
+import { initializeSweph, getNativeModule, dateToJulian, julianToDate, normalizeLongitude, getRashi, getRashiDegree, isRetrograde, callRiseTrans, callAzAlt } from './utils';
 /**
  * Calculate azimuth and altitude for a celestial body
  * @param sweph - Swiss Ephemeris native module instance
@@ -18,7 +13,7 @@ const utils_1 = require("./utils");
  * @internal
  */
 function calculateAzAlt(jd, location, planetPos) {
-    const result = (0, utils_1.callAzAlt)(jd, location, planetPos);
+    const result = callAzAlt(jd, location, planetPos);
     return {
         azimuth: result.azimuth || result[0] || 0,
         altitude: result.altitude || result[1] || 0
@@ -73,27 +68,27 @@ function checkCombustion(planetId, planetLong, sunLong) {
  * console.log(`${sun?.name}: ${sun?.longitude}° in ${RASHIS[sun!.rasi-1].name}`);
  * ```
  */
-function calculatePlanets(date, options = {}) {
-    (0, utils_1.initializeSweph)();
-    const sweph = (0, utils_1.getNativeModule)();
+export function calculatePlanets(date, options = {}) {
+    initializeSweph();
+    const sweph = getNativeModule();
     const { ayanamsa = 1, includeSpeed = true, location } = options;
     // Set sidereal mode with specified ayanamsa
     sweph.swe_set_sid_mode(ayanamsa, 0, 0);
-    const jd = (0, utils_1.dateToJulian)(date);
+    const jd = dateToJulian(date);
     const planets = [];
     // Build calculation flags
-    let flags = constants_1.CALC_FLAGS.SIDEREAL | constants_1.CALC_FLAGS.SWIEPH;
+    let flags = CALC_FLAGS.SIDEREAL | CALC_FLAGS.SWIEPH;
     if (includeSpeed)
-        flags |= constants_1.CALC_FLAGS.SPEED;
+        flags |= CALC_FLAGS.SPEED;
     let rahuLongitude = null;
     let rahuSpeed = null;
     let sunLongitude = null;
     // First pass: Calculate positions
     const calculatedPlanets = [];
     // Determine which planets to calculate
-    const planetsToCalc = [...constants_1.VEDIC_PLANET_ORDER];
+    const planetsToCalc = [...VEDIC_PLANET_ORDER];
     if (options.includeOuterPlanets) {
-        planetsToCalc.push(...constants_1.OUTER_PLANETS);
+        planetsToCalc.push(...OUTER_PLANETS);
     }
     for (const planetDef of planetsToCalc) {
         if (planetDef.name === 'Ketu')
@@ -122,7 +117,7 @@ function calculatePlanets(date, options = {}) {
                 distance = result.distance || 0;
                 speed = result.longitudeSpeed || result.speed || 0;
             }
-            const normalizedLong = (0, utils_1.normalizeLongitude)(longitude);
+            const normalizedLong = normalizeLongitude(longitude);
             if (planetDef.name === 'Sun') {
                 sunLongitude = normalizedLong;
             }
@@ -159,9 +154,9 @@ function calculatePlanets(date, options = {}) {
             latitude: p.latitude,
             distance: p.distance,
             speed: p.speed,
-            rasi: (0, utils_1.getRashi)(p.longitude),
-            rasiDegree: (0, utils_1.getRashiDegree)(p.longitude),
-            isRetrograde: (0, utils_1.isRetrograde)(p.speed),
+            rasi: getRashi(p.longitude),
+            rasiDegree: getRashiDegree(p.longitude),
+            isRetrograde: isRetrograde(p.speed),
             totalDegree: p.longitude,
             ...azAlt,
             isCombust
@@ -169,7 +164,7 @@ function calculatePlanets(date, options = {}) {
     }
     // Add Ketu
     if (rahuLongitude !== null) {
-        const ketuLongitude = (0, utils_1.normalizeLongitude)(rahuLongitude + 180);
+        const ketuLongitude = normalizeLongitude(rahuLongitude + 180);
         const ketuSpeed = rahuSpeed !== null ? -rahuSpeed : 0;
         let azAlt = {};
         if (location) {
@@ -186,8 +181,8 @@ function calculatePlanets(date, options = {}) {
             latitude: 0,
             distance: 0,
             speed: ketuSpeed,
-            rasi: (0, utils_1.getRashi)(ketuLongitude),
-            rasiDegree: (0, utils_1.getRashiDegree)(ketuLongitude),
+            rasi: getRashi(ketuLongitude),
+            rasiDegree: getRashiDegree(ketuLongitude),
             isRetrograde: true,
             totalDegree: ketuLongitude,
             ...azAlt,
@@ -216,15 +211,15 @@ function calculatePlanets(date, options = {}) {
  * }
  * ```
  */
-function calculateSinglePlanet(planetId, date, options = {}) {
-    (0, utils_1.initializeSweph)();
-    const sweph = (0, utils_1.getNativeModule)();
+export function calculateSinglePlanet(planetId, date, options = {}) {
+    initializeSweph();
+    const sweph = getNativeModule();
     const { ayanamsa = 1, includeSpeed = true, location } = options;
     sweph.swe_set_sid_mode(ayanamsa, 0, 0);
-    const jd = (0, utils_1.dateToJulian)(date);
-    let flags = constants_1.CALC_FLAGS.SIDEREAL | constants_1.CALC_FLAGS.SWIEPH;
+    const jd = dateToJulian(date);
+    let flags = CALC_FLAGS.SIDEREAL | CALC_FLAGS.SWIEPH;
     if (includeSpeed)
-        flags |= constants_1.CALC_FLAGS.SPEED;
+        flags |= CALC_FLAGS.SPEED;
     const result = sweph.swe_calc_ut(jd, planetId, flags);
     if (!result || typeof result !== 'object') {
         return null;
@@ -245,7 +240,7 @@ function calculateSinglePlanet(planetId, date, options = {}) {
         distance = result.xx[2] || 0;
         speed = result.xx[3] || 0;
     }
-    const normalizedLong = (0, utils_1.normalizeLongitude)(longitude);
+    const normalizedLong = normalizeLongitude(longitude);
     // Get planet name from sweph
     const planetNameResult = sweph.swe_get_planet_name(planetId);
     const planetName = (typeof planetNameResult === 'object' && planetNameResult?.name)
@@ -267,7 +262,7 @@ function calculateSinglePlanet(planetId, date, options = {}) {
         const sunResult = sweph.swe_calc_ut(jd, 0, flags);
         const sunLong = Array.isArray(sunResult) ? sunResult[0] : (sunResult.xx ? sunResult.xx[0] : 0);
         if (sunLong !== undefined) {
-            isCombust = checkCombustion(planetName, normalizedLong, (0, utils_1.normalizeLongitude)(sunLong));
+            isCombust = checkCombustion(planetName, normalizedLong, normalizeLongitude(sunLong));
         }
     }
     return {
@@ -277,9 +272,9 @@ function calculateSinglePlanet(planetId, date, options = {}) {
         latitude,
         distance,
         speed,
-        rasi: (0, utils_1.getRashi)(normalizedLong),
-        rasiDegree: (0, utils_1.getRashiDegree)(normalizedLong),
-        isRetrograde: (0, utils_1.isRetrograde)(speed),
+        rasi: getRashi(normalizedLong),
+        rasiDegree: getRashiDegree(normalizedLong),
+        isRetrograde: isRetrograde(speed),
         totalDegree: normalizedLong, // Legacy compatibility
         ...azAlt,
         isCombust
@@ -308,39 +303,39 @@ function calculateSinglePlanet(planetId, date, options = {}) {
  * console.log(`Sunset: ${times.set}`);
  * ```
  */
-function calculatePlanetRiseSetTimes(planetId, date, location) {
-    (0, utils_1.initializeSweph)();
-    const sweph = (0, utils_1.getNativeModule)();
+export function calculatePlanetRiseSetTimes(planetId, date, location) {
+    initializeSweph();
+    const sweph = getNativeModule();
     const timezone = location.timezone ?? 0;
     // Convert to UTC midnight
     const utcDate = new Date(date.getTime() - timezone * 60 * 60 * 1000);
     utcDate.setUTCHours(0, 0, 0, 0);
-    const jd = (0, utils_1.dateToJulian)(utcDate);
+    const jd = dateToJulian(utcDate);
     // Calculation flags for rise/set
     const CALC_RISE = sweph.SE_CALC_RISE || 1;
     const CALC_SET = sweph.SE_CALC_SET || 2;
     const CALC_TRANSIT = sweph.SE_CALC_MTRANSIT || 4;
     // Calculate rise
-    const riseResult = (0, utils_1.callRiseTrans)(jd, planetId, CALC_RISE, location);
+    const riseResult = callRiseTrans(jd, planetId, CALC_RISE, location);
     // Calculate set
-    const setResult = (0, utils_1.callRiseTrans)(jd, planetId, CALC_SET, location);
+    const setResult = callRiseTrans(jd, planetId, CALC_SET, location);
     // Calculate transit
-    const transitResult = (0, utils_1.callRiseTrans)(jd, planetId, CALC_TRANSIT, location);
+    const transitResult = callRiseTrans(jd, planetId, CALC_TRANSIT, location);
     // swe_rise_trans returns { transitTime, name } or { error }
     const rise = riseResult?.transitTime
-        ? (0, utils_1.julianToDate)(riseResult.transitTime, timezone)
+        ? julianToDate(riseResult.transitTime, timezone)
         : riseResult?.dret?.[0]
-            ? (0, utils_1.julianToDate)(riseResult.dret[0], timezone)
+            ? julianToDate(riseResult.dret[0], timezone)
             : null;
     const set = setResult?.transitTime
-        ? (0, utils_1.julianToDate)(setResult.transitTime, timezone)
+        ? julianToDate(setResult.transitTime, timezone)
         : setResult?.dret?.[0]
-            ? (0, utils_1.julianToDate)(setResult.dret[0], timezone)
+            ? julianToDate(setResult.dret[0], timezone)
             : null;
     const transit = transitResult?.transitTime
-        ? (0, utils_1.julianToDate)(transitResult.transitTime, timezone)
+        ? julianToDate(transitResult.transitTime, timezone)
         : transitResult?.dret?.[0]
-            ? (0, utils_1.julianToDate)(transitResult.dret[0], timezone)
+            ? julianToDate(transitResult.dret[0], timezone)
             : null;
     // Calculate altitude at transit (if transit exists)
     let transitAltitude = 0;
@@ -349,9 +344,9 @@ function calculatePlanetRiseSetTimes(planetId, date, location) {
         // Calculate position at transit time to get altitude/distance
         // Need to convert transit time (which is local date object) back to UTC JD
         const transitUtc = new Date(transit.getTime() - timezone * 60 * 60 * 1000);
-        const transitJd = (0, utils_1.dateToJulian)(transitUtc);
+        const transitJd = dateToJulian(transitUtc);
         // Get equatorial position for declination/distance
-        const flags = constants_1.CALC_FLAGS.SIDEREAL | constants_1.CALC_FLAGS.SWIEPH | constants_1.CALC_FLAGS.SPEED | (sweph.SEFLG_EQUATORIAL || 0x0800);
+        const flags = CALC_FLAGS.SIDEREAL | CALC_FLAGS.SWIEPH | CALC_FLAGS.SPEED | (sweph.SEFLG_EQUATORIAL || 0x0800);
         const pos = sweph.swe_calc_ut(transitJd, planetId, flags);
         if (pos) {
             let declination = 0;
