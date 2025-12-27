@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { 
   createSwephCalculator, 
   PlanetId,
-  PlanetaryCalculationProvider
+  PlanetaryCalculationProvider,
+  calculatePlanets
 } from './index';
 
 describe('SWEPH Robustness Tests', () => {
@@ -136,6 +137,28 @@ describe('SWEPH Robustness Tests', () => {
         );
         expect(result).toBeDefined();
       }
+    });
+    it('should include outer planets when requested', async () => {
+      // Use direct function for new features
+      const planets = calculatePlanets(testDate, {
+        includeOuterPlanets: true,
+        location
+      });
+
+      expect(planets.some(p => p.name === 'Uranus')).toBe(true);
+      expect(planets.some(p => p.name === 'Neptune')).toBe(true);
+      expect(planets.some(p => p.name === 'Pluto')).toBe(true);
+      expect(planets.length).toBeGreaterThan(9);
+    });
+
+    it('should exclude outer planets by default', async () => {
+      // Use direct function for new features
+      const planets = calculatePlanets(testDate, {
+        location
+      });
+
+      expect(planets.some(p => p.name === 'Uranus')).toBe(false);
+      expect(planets.length).toBe(9); // 7 planets + Rahu + Ketu
     });
   });
 });
