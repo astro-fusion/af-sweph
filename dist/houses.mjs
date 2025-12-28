@@ -1,8 +1,8 @@
 /**
  * House and Lagna Calculations for @AstroFusion/sweph
  */
-import { HouseSystem } from './types';
-import { initializeSweph, getNativeModule, dateToJulian, getAyanamsa, normalizeLongitude, getRashi, getRashiDegree } from './utils';
+import { HouseSystem } from './types.js';
+import { initializeSweph, getNativeModule, dateToJulian, getAyanamsa, normalizeLongitude, getRashi, getRashiDegree } from './utils.js';
 /**
  * Calculate Lagna (Ascendant) and house cusps for Vedic astrology
  * @param date - Birth date and time (local time)

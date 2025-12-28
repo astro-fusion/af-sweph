@@ -1,8 +1,8 @@
 /**
  * Sun Calculations for @AstroFusion/sweph
  */
-import { PlanetId } from './types';
-import { initializeSweph, getNativeModule, dateToJulian, julianToDate, callRiseTrans, callAzAlt } from './utils';
+import { PlanetId } from './types.js';
+import { initializeSweph, getNativeModule, dateToJulian, julianToDate, callRiseTrans, callAzAlt } from './utils.js';
 /**
  * Calculate sunrise, sunset, and twilight times for a location
  * @param date - Date for sun time calculation (local time)

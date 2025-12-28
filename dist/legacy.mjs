@@ -4,8 +4,8 @@
  * This file provides backwards-compatible exports for code migrating
  * from the old @astrofusion/sweph-* packages.
  */
-import { calculatePlanets, calculateSinglePlanet, calculatePlanetRiseSetTimes, calculateLagna, calculateSunTimes, calculateSunPath, calculateMoonData, calculateMoonPhase, calculateNextMoonPhases, } from './index';
-import { initializeSweph as initSweph } from './utils';
+import { calculatePlanets, calculateSinglePlanet, calculatePlanetRiseSetTimes, calculateLagna, calculateSunTimes, calculateSunPath, calculateMoonData, calculateMoonPhase, calculateNextMoonPhases, } from './index.js';
+import { initializeSweph as initSweph } from './utils.js';
 // ===== Legacy Factory Functions =====
 /**
  * Creates a PlanetaryCalculationProvider instance

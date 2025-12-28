@@ -1,8 +1,8 @@
 /**
  * Planet Calculations for @AstroFusion/sweph
  */
-import { VEDIC_PLANET_ORDER, OUTER_PLANETS, CALC_FLAGS } from './constants';
-import { initializeSweph, getNativeModule, dateToJulian, julianToDate, normalizeLongitude, getRashi, getRashiDegree, isRetrograde, callRiseTrans, callAzAlt } from './utils';
+import { VEDIC_PLANET_ORDER, OUTER_PLANETS, CALC_FLAGS } from './constants.js';
+import { initializeSweph, getNativeModule, dateToJulian, julianToDate, normalizeLongitude, getRashi, getRashiDegree, isRetrograde, callRiseTrans, callAzAlt } from './utils.js';
 /**
  * Calculate azimuth and altitude for a celestial body
  * @param sweph - Swiss Ephemeris native module instance

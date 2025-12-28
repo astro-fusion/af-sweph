@@ -19,8 +19,7 @@ if (fs.existsSync(esmDir)) {
     
     let content = fs.readFileSync(src, 'utf8');
     
-    // Inject ESM compatibility shims for utils.js (which becomes utils.mjs)
-    // failing which `require` and `__dirname` would be undefined
+    // 1. Inject ESM compatibility shims for utils.js (which becomes utils.mjs)
     if (file === 'utils.js') {
       const shim = [
         "import { createRequire } from 'module';",
@@ -34,24 +33,40 @@ if (fs.existsSync(esmDir)) {
         ""
       ].join('\n');
       
-      // Inject after imports (simplistic approach: prepend to file or after first few lines?)
-      // Since tsc output puts imports at top, prepending works IF there are no shell shebangs (unlikely for library).
-      // However, imports must come before other code.
-      // But we are injecting imports ourselves.
-      // The issue is if existing imports rely on `require`? No, existing imports are ESM `import ...`.
-      // `require` is used in the BODY.
-      // So prepending imports is fine.
-      
       content = shim + content;
       console.log(`✅ Injected ESM shims into ${file.replace('.js', '.mjs')}`);
     }
+
+    // 2. Add .js extensions to relative imports/exports
+    // Matches: import ... from './foo' or export ... from './foo'
+    // Capture group 1: import/export statement part
+    // Capture group 2: quote
+    // Capture group 3: path (starting with . or ..)
+    // Capture group 4: quote
+    // We only want to append .js if it doesn't already have an extension (simplistic check)
+    // Actually simpler regex: replacing /from\s+['"](\..*?)['"]/g
+    
+    content = content.replace(/from\s+['"](\.[^'"]+)['"]/g, (match, importPath) => {
+      if (!importPath.endsWith('.js') && !importPath.endsWith('.mjs')) {
+        return `from '${importPath}.js'`;
+      }
+      return match;
+    });
+
+    // Also handle dynamic imports() if any (not present in this lib likely, but good practice)
+    content = content.replace(/import\s*\(['"](\.[^'"]+)['"]\)/g, (match, importPath) => {
+       if (!importPath.endsWith('.js') && !importPath.endsWith('.mjs')) {
+        return `import('${importPath}.js')`;
+      }
+      return match;
+    });
     
     fs.writeFileSync(dest, content);
   });
   
   // Cleanup temp esm dir
   fs.rmSync(esmDir, { recursive: true, force: true });
-  console.log('✅ ESM build completed successfully');
+  console.log('✅ ESM build completed successfully with extension fix');
 } else {
   console.log('⚠️ dist-esm directory not found, skipping ESM post-processing');
 }
