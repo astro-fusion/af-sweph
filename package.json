@@ -1,10 +1,6 @@
 {
   "name": "@af/sweph",
-<<<<<<< HEAD
   "version": "0.1.10",
-=======
-  "version": "0.1.9",
->>>>>>> 90cf6734b9df83ba528aa3ba1e59202a6ffebe58
   "description": "Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
