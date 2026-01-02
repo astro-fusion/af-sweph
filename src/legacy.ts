@@ -9,14 +9,22 @@ import {
   calculatePlanets,
   calculateSinglePlanet,
   calculatePlanetRiseSetTimes,
-  calculateLagna,
+} from './planets';
+
+import { calculateLagna } from './houses';
+
+import {
   calculateSunTimes,
   calculateSunPath,
+} from './sun';
+
+import {
   calculateMoonData,
   calculateMoonPhase,
   calculateNextMoonPhases,
-  getAyanamsa,
-} from './index';
+} from './moon';
+
+import { getAyanamsa } from './utils';
 
 import type {
   Planet,
@@ -301,10 +309,10 @@ export async function calculateKundaliPageData(
   moonData: MoonData;
 }> {
   const [planets, lagna, sunTimes, moonData] = await Promise.all([
-    Promise.resolve(calculatePlanets(birthDate, options)),
-    Promise.resolve(calculateLagna(birthDate, location, options)),
-    Promise.resolve(calculateSunTimes(birthDate, location)),
-    Promise.resolve(calculateMoonData(birthDate, location)),
+    calculatePlanets(birthDate, options),
+    calculateLagna(birthDate, location, options),
+    calculateSunTimes(birthDate, location),
+    calculateMoonData(birthDate, location),
   ]);
 
   return { planets, lagna, sunTimes, moonData };

@@ -13,7 +13,10 @@ exports.createNodeAdapter = createNodeAdapter;
 exports.initializeSweph = initializeSweph;
 exports.registerAdapter = registerAdapter;
 exports.calculateKundaliPageData = calculateKundaliPageData;
-const index_1 = require("./index");
+const planets_1 = require("./planets");
+const houses_1 = require("./houses");
+const sun_1 = require("./sun");
+const moon_1 = require("./moon");
 const utils_1 = require("./utils");
 // ===== Legacy Factory Functions =====
 /**
@@ -32,24 +35,24 @@ function createSwephCalculator() {
         async calculateAllPlanetPositions(date, timeZoneOffset, ayanamsa = 1) {
             // Adjust date for timezone
             const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
-            return (0, index_1.calculatePlanets)(utcDate, { ayanamsa });
+            return (0, planets_1.calculatePlanets)(utcDate, { ayanamsa });
         },
         async calculateLagna(date, timeZoneOffset, latitude, longitude, ayanamsa = 1) {
-            return (0, index_1.calculateLagna)(date, { latitude, longitude, timezone: timeZoneOffset }, { ayanamsa });
+            return (0, houses_1.calculateLagna)(date, { latitude, longitude, timezone: timeZoneOffset }, { ayanamsa });
         },
         async calculateSunTimes(date, latitude, longitude, timeZoneOffset) {
-            return (0, index_1.calculateSunTimes)(date, { latitude, longitude, timezone: timeZoneOffset });
+            return (0, sun_1.calculateSunTimes)(date, { latitude, longitude, timezone: timeZoneOffset });
         },
         async calculateMoonTimes(date, latitude, longitude, timeZoneOffset) {
-            return (0, index_1.calculateMoonData)(date, { latitude, longitude, timezone: timeZoneOffset });
+            return (0, moon_1.calculateMoonData)(date, { latitude, longitude, timezone: timeZoneOffset });
         },
         async calculatePlanetRiseSetTimes(planetId, date, latitude, longitude, timeZoneOffset) {
-            return (0, index_1.calculatePlanetRiseSetTimes)(planetId, date, { latitude, longitude, timezone: timeZoneOffset });
+            return (0, planets_1.calculatePlanetRiseSetTimes)(planetId, date, { latitude, longitude, timezone: timeZoneOffset });
         },
         async calculateMoonPosition(date, latitude, longitude, timeZoneOffset) {
             // Calculate Moon (id 1) using implementation that supports Az/Alt
             const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
-            const result = await (0, index_1.calculateSinglePlanet)(1, utcDate, {
+            const result = await (0, planets_1.calculateSinglePlanet)(1, utcDate, {
                 ayanamsa: 1, // Default ayanamsa
                 location: { latitude, longitude, timezone: timeZoneOffset }
             });
@@ -58,7 +61,7 @@ function createSwephCalculator() {
             return result;
         },
         async calculateMoonTransit(date, latitude, longitude, timeZoneOffset) {
-            const result = (0, index_1.calculatePlanetRiseSetTimes)(1, // Moon
+            const result = (0, planets_1.calculatePlanetRiseSetTimes)(1, // Moon
             date, { latitude, longitude, timezone: timeZoneOffset });
             return {
                 transit: result.transit,
@@ -67,13 +70,13 @@ function createSwephCalculator() {
             };
         },
         async calculateMoonPhase(date) {
-            return (0, index_1.calculateMoonPhase)(date);
+            return (0, moon_1.calculateMoonPhase)(date);
         },
         async calculateNextMoonPhases(date) {
-            return (0, index_1.calculateNextMoonPhases)(date);
+            return (0, moon_1.calculateNextMoonPhases)(date);
         },
         async calculateDailySunPath(date, latitude, longitude, timeZoneOffset) {
-            return (0, index_1.calculateSunPath)(date, { latitude, longitude, timezone: timeZoneOffset });
+            return (0, sun_1.calculateSunPath)(date, { latitude, longitude, timezone: timeZoneOffset });
         }
     };
 }
@@ -111,10 +114,10 @@ function registerAdapter(_platform, _adapter) {
  */
 async function calculateKundaliPageData(birthDate, location, options = {}) {
     const [planets, lagna, sunTimes, moonData] = await Promise.all([
-        Promise.resolve((0, index_1.calculatePlanets)(birthDate, options)),
-        Promise.resolve((0, index_1.calculateLagna)(birthDate, location, options)),
-        Promise.resolve((0, index_1.calculateSunTimes)(birthDate, location)),
-        Promise.resolve((0, index_1.calculateMoonData)(birthDate, location)),
+        Promise.resolve((0, planets_1.calculatePlanets)(birthDate, options)),
+        Promise.resolve((0, houses_1.calculateLagna)(birthDate, location, options)),
+        Promise.resolve((0, sun_1.calculateSunTimes)(birthDate, location)),
+        Promise.resolve((0, moon_1.calculateMoonData)(birthDate, location)),
     ]);
     return { planets, lagna, sunTimes, moonData };
 }
