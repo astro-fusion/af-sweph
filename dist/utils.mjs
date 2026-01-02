@@ -1,8 +1,16 @@
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 /**
  * Utility Functions for @AstroFusion/sweph
  */
 import path from 'path';
-import { JULIAN_UNIX_EPOCH } from './constants';
+import { JULIAN_UNIX_EPOCH } from './constants.js';
 // Native module instance
 let sweph = null;
 let ephemerisPath = null;

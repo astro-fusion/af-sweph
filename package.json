@@ -1,6 +1,10 @@
 {
   "name": "@af/sweph",
+<<<<<<< HEAD
   "version": "0.1.10",
+=======
+  "version": "0.1.9",
+>>>>>>> 90cf6734b9df83ba528aa3ba1e59202a6ffebe58
   "description": "Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,7 +27,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "build:esm": "tsc -p tsconfig.esm.json && node -e \"const fs = require('fs'); const path = require('path'); const distDir = 'dist'; const esmDir = 'dist-esm'; if (fs.existsSync(esmDir)) { const files = fs.readdirSync(esmDir).filter(f => f.endsWith('.js')); files.forEach(file => { const src = path.join(esmDir, file); const dest = path.join(distDir, file.replace('.js', '.mjs')); if (!fs.existsSync(distDir)) fs.mkdirSync(distDir, {recursive: true}); fs.renameSync(src, dest); }); fs.rmSync(esmDir, {recursive: true, force: true}); }\"",
+    "build:esm": "tsc -p tsconfig.esm.json && node scripts/post-build-esm.js",
     "prebuild": "echo 'This is a JavaScript wrapper around swisseph-v2 - no native compilation needed'",
     "test": "vitest run",
     "test:watch": "vitest",

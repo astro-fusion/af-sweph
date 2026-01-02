@@ -1,7 +1,7 @@
 /**
  * Constants for @AstroFusion/sweph
  */
-import { PlanetId, AyanamsaType, HouseSystem } from './types';
+import { PlanetId, AyanamsaType, HouseSystem } from './types.js';
 /**
  * Planet definitions for Vedic astrology (9 grahas)
  */

@@ -1,9 +1,9 @@
 /**
  * Moon Calculations for @AstroFusion/sweph
  */
-import { PlanetId } from './types';
-import { MOON_PHASES, LUNAR_MONTH_DAYS, DEFAULT_MOON_DISTANCE_KM, AU_IN_KM } from './constants';
-import { initializeSweph, getNativeModule, dateToJulian, julianToDate, callRiseTrans } from './utils';
+import { PlanetId } from './types.js';
+import { MOON_PHASES, LUNAR_MONTH_DAYS, DEFAULT_MOON_DISTANCE_KM, AU_IN_KM } from './constants.js';
+import { initializeSweph, getNativeModule, dateToJulian, julianToDate, callRiseTrans } from './utils.js';
 /**
  * Calculate comprehensive moon data including rise/set times and phase
  * @param date - Date for moon calculation (local time)
