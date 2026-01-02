@@ -309,10 +309,10 @@ export async function calculateKundaliPageData(
   moonData: MoonData;
 }> {
   const [planets, lagna, sunTimes, moonData] = await Promise.all([
-    Promise.resolve(calculatePlanets(birthDate, options)),
-    Promise.resolve(calculateLagna(birthDate, location, options)),
-    Promise.resolve(calculateSunTimes(birthDate, location)),
-    Promise.resolve(calculateMoonData(birthDate, location)),
+    calculatePlanets(birthDate, options),
+    calculateLagna(birthDate, location, options),
+    calculateSunTimes(birthDate, location),
+    calculateMoonData(birthDate, location),
   ]);
 
   return { planets, lagna, sunTimes, moonData };
