@@ -9,14 +9,22 @@ import {
   calculatePlanets,
   calculateSinglePlanet,
   calculatePlanetRiseSetTimes,
-  calculateLagna,
+} from './planets';
+
+import { calculateLagna } from './houses';
+
+import {
   calculateSunTimes,
   calculateSunPath,
+} from './sun';
+
+import {
   calculateMoonData,
   calculateMoonPhase,
   calculateNextMoonPhases,
-  getAyanamsa,
-} from './index';
+} from './moon';
+
+import { getAyanamsa } from './utils';
 
 import type {
   Planet,
