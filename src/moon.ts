@@ -167,9 +167,6 @@ export function calculateMoonPhase(
  */
 export function calculateNextMoonPhases(date: Date): NextMoonPhases {
   initializeSweph();
-  const sweph = getNativeModule();
-  
-  const jd = dateToJulian(date);
   
   // Get current phase
   const { phase: currentPhase } = calculateMoonPhase(date);

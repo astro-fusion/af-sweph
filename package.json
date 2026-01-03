@@ -25,7 +25,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "build:check": "node -e \"const fs=require('fs');const c=fs.readFileSync('dist/native-loader.js','utf8');if(c.includes(\\\"require('swisseph-v2')\\\")||c.includes(\\\"require('node-gyp-build')\\\")){console.error('ERROR: Static require found!');process.exit(1);}console.log('✅ No static requires detected');\"",
+    "build:check": "node scripts/check-static-requires.js",
     "build:esm": "tsc -p tsconfig.esm.json && node scripts/post-build-esm.js",
     "build:wasm": "bash scripts/build-wasm.sh",
     "prebuild:linux": "bash scripts/build-linux-prebuild.sh",

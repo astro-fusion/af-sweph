@@ -41,35 +41,9 @@ echo "🐳 Starting Docker build..."
 # -s EXPORTED_FUNCTIONS: C functions to expose (prefixed with _)
 # -s EXPORTED_RUNTIME_METHODS: Emscripten runtime helpers to expose
 
-EXPORTED_FUNCTIONS="[
-  '_swe_julday',
-  '_swe_date_conversion',
-  '_swe_set_ephe_path',
-  '_swe_set_sid_mode',
-  '_swe_get_ayanamsa',
-  '_swe_get_ayanamsa_ut',
-  '_swe_calc_ut',
-  '_swe_fixstar2_ut',
-  '_swe_rise_trans',
-  '_swe_azalt',
-  '_swe_version',
-  '_swe_set_topo'
-]"
-
-EXPORTED_RUNTIME_METHODS="[
-  'ccall',
-  'cwrap',
-  'FS',
-  'stringToUTF8',
-  'UTF8ToString',
-  'setValue',
-  'getValue',
-  'lengthBytesUTF8'
-]"
-
-# Compress strict JSON for command line
-EXPORTED_FUNCTIONS_JSON=$(echo "$EXPORTED_FUNCTIONS" | tr -d ' \n')
-EXPORTED_RUNTIME_METHODS_JSON=$(echo "$EXPORTED_RUNTIME_METHODS" | tr -d ' \n')
+# Define JSON arrays as single-line strings for command line
+EXPORTED_FUNCTIONS_JSON='["_swe_julday","_swe_date_conversion","_swe_set_ephe_path","_swe_set_sid_mode","_swe_get_ayanamsa","_swe_get_ayanamsa_ut","_swe_calc_ut","_swe_fixstar2_ut","_swe_rise_trans","_swe_azalt","_swe_version","_swe_set_topo"]'
+EXPORTED_RUNTIME_METHODS_JSON='["ccall","cwrap","FS","stringToUTF8","UTF8ToString","setValue","getValue","lengthBytesUTF8"]'
 
 # Note: We map the source directory to /src in container
 # and output directory to /out

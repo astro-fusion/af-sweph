@@ -151,6 +151,17 @@ function setEphemerisPath(customPath) {
 }
 /**
  * Get the ayanamsa correction value for sidereal calculations
+ *
+ * @param date - The date for which to calculate ayanamsa
+ * @param ayanamsaType - The ayanamsa system to use (default: 1 for Lahiri)
+ * @returns The ayanamsa correction value in degrees
+ *
+ * @example
+ * ```typescript
+ * const date = new Date('2024-01-01');
+ * const ayanamsa = getAyanamsa(date, 1); // Lahiri ayanamsa
+ * console.log(`Lahiri ayanamsa: ${ayanamsa.toFixed(4)}°`);
+ * ```
  */
 function getAyanamsa(date, ayanamsaType = 1) {
     const sweph = getNativeModule();
@@ -160,6 +171,16 @@ function getAyanamsa(date, ayanamsaType = 1) {
 }
 /**
  * Convert JavaScript Date to Julian Day number
+ *
+ * @param date - The date to convert (UTC)
+ * @returns The Julian Day number for the given date
+ *
+ * @example
+ * ```typescript
+ * const date = new Date('2024-01-01T12:00:00Z');
+ * const jd = dateToJulian(date);
+ * console.log(`Julian Day: ${jd}`); // 2460311.0
+ * ```
  */
 function dateToJulian(date) {
     const sweph = getNativeModule();
@@ -173,6 +194,17 @@ function dateToJulian(date) {
 }
 /**
  * Convert Julian Day number to JavaScript Date
+ *
+ * @param jd - The Julian Day number to convert
+ * @param timezoneOffset - Timezone offset in hours from UTC (default: 0)
+ * @returns JavaScript Date object
+ *
+ * @example
+ * ```typescript
+ * const jd = 2460311.0;
+ * const date = julianToDate(jd);
+ * console.log(date.toISOString()); // 2024-01-01T12:00:00.000Z
+ * ```
  */
 function julianToDate(jd, timezoneOffset = 0) {
     const utcMs = (jd - constants_1.JULIAN_UNIX_EPOCH) * 86400000;
@@ -186,6 +218,16 @@ function getJulianDay(date) {
 }
 /**
  * Normalize ecliptic longitude to 0-360° range
+ *
+ * @param longitude - Longitude value in degrees (can be any real number)
+ * @returns Normalized longitude between 0 and 360 degrees
+ *
+ * @example
+ * ```typescript
+ * normalizeLongitude(390);  // 30
+ * normalizeLongitude(-30);  // 330
+ * normalizeLongitude(180);  // 180
+ * ```
  */
 function normalizeLongitude(longitude) {
     let norm = longitude % 360;
@@ -215,6 +257,16 @@ function isRetrograde(speed) {
 }
 /**
  * Calculate nakshatra (lunar mansion) from ecliptic longitude
+ *
+ * @param longitude - Ecliptic longitude in degrees
+ * @returns Object containing nakshatra number (1-27) and pada (1-4)
+ *
+ * @example
+ * ```typescript
+ * const result = getNakshatra(30);
+ * console.log(`Nakshatra: ${result.number}, Pada: ${result.pada}`);
+ * // Nakshatra: 2, Pada: 1 (for longitude 30°)
+ * ```
  */
 function getNakshatra(longitude) {
     const norm = normalizeLongitude(longitude);
@@ -270,6 +322,6 @@ function callAzAlt(jd, location, planetPos) {
         errors.push(`Attempt 3 failed: ${error.message}`);
     }
     console.warn('swe_azalt call failed. Errors:', errors.join('; '));
-    return { azimuth: 0, altitude: 0 };
+    throw new Error(`swe_azalt call failed. Errors: ${errors.join('; ')}`);
 }
 //# sourceMappingURL=utils.js.map
