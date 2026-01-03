@@ -171,7 +171,6 @@ function callAzAlt(jd, location, planetPos) {
     catch (error) {
         errors.push(`Attempt 3 failed: ${error.message}`);
     }
-    console.warn('swe_azalt call failed. Errors:', errors.join('; '));
-    throw new Error(`swe_azalt call failed. Errors: ${errors.join('; ')}`);
+    throw new Error(`swe_azalt call failed after multiple attempts. Errors: ${errors.join('; ')}`);
 }
 //# sourceMappingURL=utils.js.map
