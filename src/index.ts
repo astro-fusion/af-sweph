@@ -42,6 +42,13 @@ export {
   getNativeModule,
 } from './utils';
 
+// Platform utilities (for debugging deployment issues)
+export {
+  getPlatformInfo,
+  hasPrebuilds,
+  getSupportedPlatforms,
+} from './native-loader';
+
 // Constants
 export {
   PLANETS,

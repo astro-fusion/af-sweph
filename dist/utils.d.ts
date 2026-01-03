@@ -3,7 +3,8 @@
  */
 /**
  * Get the native Swiss Ephemeris module
- * Automatically loads pre-built binaries or falls back to swisseph-v2
+ * Automatically loads pre-built binaries from prebuilds/ directory
+ * Falls back to swisseph-v2 if prebuilds not available (development mode)
  * @returns Swiss Ephemeris native module instance
  * @throws Error if no compatible native module can be loaded
  * @internal
@@ -29,7 +30,7 @@ export declare function initializeSweph(): void;
  * initializeSweph();
  * ```
  */
-export declare function setEphemerisPath(path: string): void;
+export declare function setEphemerisPath(customPath: string): void;
 /**
  * Get the ayanamsa correction value for sidereal calculations
  * @param date - Date for ayanamsa calculation

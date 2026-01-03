@@ -22,39 +22,20 @@ exports.callRiseTrans = callRiseTrans;
 exports.callAzAlt = callAzAlt;
 const path_1 = __importDefault(require("path"));
 const constants_1 = require("./constants");
-// Native module instance
-let sweph = null;
+const native_loader_1 = require("./native-loader");
+// Ephemeris path and initialization state
 let ephemerisPath = null;
 let isInitialized = false;
 /**
  * Get the native Swiss Ephemeris module
- * Automatically loads pre-built binaries or falls back to swisseph-v2
+ * Automatically loads pre-built binaries from prebuilds/ directory
+ * Falls back to swisseph-v2 if prebuilds not available (development mode)
  * @returns Swiss Ephemeris native module instance
  * @throws Error if no compatible native module can be loaded
  * @internal
  */
 function getNativeModule() {
-    if (!sweph) {
-        try {
-            // Try to load pre-built binary first
-            const gypBuild = require('node-gyp-build');
-            sweph = gypBuild(path_1.default.resolve(__dirname, '..'));
-        }
-        catch {
-            // Fall back to direct require of swisseph-v2 if prebuilds not available
-            // This allows development without prebuilds
-            try {
-                const swissephV2 = require('swisseph-v2');
-                sweph = swissephV2.default || swissephV2;
-            }
-            catch (e) {
-                throw new Error('Failed to load Swiss Ephemeris native module. ' +
-                    'Make sure swisseph-v2 is installed or prebuilds are available. ' +
-                    `Error: ${e}`);
-            }
-        }
-    }
-    return sweph;
+    return (0, native_loader_1.loadNativeBinary)();
 }
 /**
  * Initialize the Swiss Ephemeris system
@@ -102,10 +83,15 @@ function initializeSweph() {
  * initializeSweph();
  * ```
  */
-function setEphemerisPath(path) {
-    ephemerisPath = path;
-    if (sweph) {
-        sweph.swe_set_ephe_path(path);
+function setEphemerisPath(customPath) {
+    ephemerisPath = customPath;
+    // Try to set the path immediately if module is already loaded
+    try {
+        const sweph = getNativeModule();
+        sweph.swe_set_ephe_path(customPath);
+    }
+    catch {
+        // Module not loaded yet, path will be set during initialization
     }
 }
 /**
