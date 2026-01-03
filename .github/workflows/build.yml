@@ -29,11 +29,8 @@ jobs:
       - name: Build TypeScript
         run: pnpm run build
 
-      - name: Build ESM
-        run: pnpm run build:esm
-
       - name: Validate dist files
-        run: pnpm run validate-dist
+        run: pnpm --filter @af/sweph-node run validate-dist
 
       - name: Run tests
         run: pnpm run test

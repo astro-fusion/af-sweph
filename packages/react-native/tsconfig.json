@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "esnext",
+        "lib": [
+            "esnext"
+        ],
+        "moduleResolution": "node",
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "jsx": "react-native",
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "outDir": "lib/typescript"
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "lib"
+    ]
+}

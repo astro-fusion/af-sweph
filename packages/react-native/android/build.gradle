@@ -1,0 +1,50 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:7.2.1"
+  }
+}
+
+def isNewArchitectureEnabled() {
+  return rootProject.hasProperty("newArchEnabled") && rootProject.newArchEnabled
+}
+
+apply plugin: "com.android.library"
+
+if (isNewArchitectureEnabled()) {
+  apply plugin: "com.facebook.react"
+}
+
+android {
+  compileSdkVersion 33
+  namespace "com.rnsweph"
+
+  defaultConfig {
+    minSdkVersion 21
+    targetSdkVersion 33
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+
+  packagingOptions {
+    excludes = ["**/libc++_shared.so", "**/libfbjni.so", "**/libreactnativejni.so", "**/libjsi.so"]
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+}
+
+dependencies {
+  implementation "com.facebook.react:react-native:+"
+}

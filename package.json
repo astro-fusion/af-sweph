@@ -1,92 +1,17 @@
 {
-  "name": "@af/sweph",
-  "version": "0.3.0",
-  "description": "Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries - Vercel compatible",
-  "main": "dist/index.js",
-  "browser": {
-    "./src/native-loader.ts": "./src/browser-loader.ts",
-    "./dist/native-loader.js": "./dist/browser-loader.js"
-  },
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs",
-      "default": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "src",
-    "prebuilds",
-    "ephe",
-    "tsconfig.json"
-  ],
+  "name": "@af/sweph-monorepo",
+  "private": true,
   "scripts": {
-    "build": "tsc",
-    "build:check": "node scripts/check-static-requires.js",
-    "build:esm": "tsc -p tsconfig.esm.json && node scripts/post-build-esm.js",
-    "build:wasm": "bash scripts/build-wasm.sh",
-    "prebuild:linux": "bash scripts/build-linux-prebuild.sh",
-    "copy:darwin-arm64": "mkdir -p prebuilds/darwin-arm64 && cp node_modules/swisseph-v2/build/Release/swisseph.node prebuilds/darwin-arm64/",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint src",
-    "prepublishOnly": "npm run build",
-    "validate-dist": "node -e \"require('./dist/index.js'); console.log('✅ Dist files are valid');\"",
-    "check-platform": "node -e \"const {getPlatformInfo}=require('./dist/native-loader');console.log(JSON.stringify(getPlatformInfo(),null,2));\""
-  },
-  "keywords": [
-    "swiss-ephemeris",
-    "sweph",
-    "astrology",
-    "vedic",
-    "jyotish",
-    "kundali",
-    "horoscope",
-    "planets",
-    "ephemeris",
-    "vercel",
-    "serverless"
-  ],
-  "author": "AstroFusion <contact@astrofusion.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:astro-fusion/af-sweph.git"
-  },
-  "bugs": {
-    "url": "https://github.com/astro-fusion/af-sweph/issues"
-  },
-  "homepage": "https://github.com/astro-fusion/af-sweph#readme",
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "os": [
-    "linux",
-    "darwin",
-    "win32"
-  ],
-  "cpu": [
-    "x64",
-    "arm64"
-  ],
-  "dependencies": {},
-  "optionalDependencies": {
-    "swisseph-v2": "^1.0.4"
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@types/node": "^20.19.27",
-    "@typescript-eslint/eslint-plugin": "^8.50.1",
-    "@typescript-eslint/parser": "^8.50.1",
-    "eslint": "^9.39.2",
-    "prebuildify": "^6.0.1",
-    "prebuildify-cross": "^5.1.1",
     "typescript": "^5.9.3",
-    "vitest": "^1.6.1"
+    "husky": "^9.0.0"
   },
-  "publishConfig": {
-    "access": "public"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

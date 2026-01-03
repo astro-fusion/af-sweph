@@ -1,0 +1,47 @@
+{
+    "name": "@af/sweph-wasm",
+    "version": "0.1.0",
+    "description": "Swiss Ephemeris WebAssembly module for browser-based Vedic astrology calculations",
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js",
+            "default": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist",
+        "src",
+        "wasm"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "test": "echo 'Skipping wasm tests' && exit 0",
+        "lint": "eslint src"
+    },
+    "keywords": [
+        "swiss-ephemeris",
+        "sweph",
+        "wasm",
+        "webassembly",
+        "astrology",
+        "vedic",
+        "browser"
+    ],
+    "author": "AstroFusion <contact@astrofusion.com>",
+    "license": "MIT",
+    "dependencies": {
+        "@af/sweph-core": "workspace:*"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.3",
+        "vitest": "^1.6.1"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}
