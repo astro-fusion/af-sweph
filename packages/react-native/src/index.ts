@@ -144,8 +144,7 @@ export async function createSweph(options?: NativeLoadOptions): Promise<ISwephIn
                 const result = adapter.swe_calc_ut(jd, planetDef.id, SEFLG_SWIEPH | SEFLG_SPEED);
 
                 if ('error' in result) {
-                    console.warn(`Failed to calculate ${planetDef.name}: ${result.error}`);
-                    continue;
+                    throw new Error(`Failed to calculate ${planetDef.name}: ${result.error}`);
                 }
 
                 planets.push({
