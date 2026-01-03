@@ -1,11 +1,7 @@
 {
   "name": "@af/sweph",
-<<<<<<< HEAD
-  "version": "0.1.10",
-=======
-  "version": "0.1.9",
->>>>>>> 90cf6734b9df83ba528aa3ba1e59202a6ffebe58
-  "description": "Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries",
+  "version": "0.2.0",
+  "description": "Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries - Vercel compatible",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -21,19 +17,19 @@
     "src",
     "prebuilds",
     "ephe",
-    "binding.gyp",
-    "native",
     "tsconfig.json"
   ],
   "scripts": {
     "build": "tsc",
     "build:esm": "tsc -p tsconfig.esm.json && node scripts/post-build-esm.js",
-    "prebuild": "echo 'This is a JavaScript wrapper around swisseph-v2 - no native compilation needed'",
+    "prebuild:linux": "bash scripts/build-linux-prebuild.sh",
+    "copy:darwin-arm64": "mkdir -p prebuilds/darwin-arm64 && cp node_modules/swisseph-v2/build/Release/swisseph.node prebuilds/darwin-arm64/",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src",
     "prepublishOnly": "npm run build",
-    "validate-dist": "node -e \"require('./dist/index.js'); console.log('✅ Dist files are valid');\""
+    "validate-dist": "node -e \"require('./dist/index.js'); console.log('✅ Dist files are valid');\"",
+    "check-platform": "node -e \"const {getPlatformInfo}=require('./dist/native-loader');console.log(JSON.stringify(getPlatformInfo(),null,2));\""
   },
   "keywords": [
     "swiss-ephemeris",
@@ -44,7 +40,9 @@
     "kundali",
     "horoscope",
     "planets",
-    "ephemeris"
+    "ephemeris",
+    "vercel",
+    "serverless"
   ],
   "author": "AstroFusion <contact@astrofusion.com>",
   "license": "MIT",
@@ -59,7 +57,17 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "dependencies": {},
+  "optionalDependencies": {
     "swisseph-v2": "^1.0.4"
   },
   "devDependencies": {

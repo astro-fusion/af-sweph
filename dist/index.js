@@ -20,7 +20,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateKundaliPageData = exports.registerAdapter = exports.initializeSweph = exports.createNodeAdapter = exports.createSwephAdapter = exports.createPlanetaryCalculator = exports.createSwephCalculator = exports.VEDIC_PLANET_ORDER = exports.NAKSHATRAS = exports.RASHIS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.PLANETS = exports.getNativeModule = exports.julianToDate = exports.dateToJulian = exports.getJulianDay = exports.setEphemerisPath = exports.getAyanamsa = exports.calculateNextMoonPhases = exports.calculateMoonPhase = exports.calculateMoonData = exports.calculateSunPath = exports.calculateSolarNoon = exports.calculateSunTimes = exports.calculateHouses = exports.calculateLagna = exports.calculatePlanetRiseSetTimes = exports.calculateSinglePlanet = exports.calculatePlanets = void 0;
+exports.calculateKundaliPageData = exports.registerAdapter = exports.initializeSweph = exports.createNodeAdapter = exports.createSwephAdapter = exports.createPlanetaryCalculator = exports.createSwephCalculator = exports.VEDIC_PLANET_ORDER = exports.NAKSHATRAS = exports.RASHIS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.PLANETS = exports.getSupportedPlatforms = exports.hasPrebuilds = exports.getPlatformInfo = exports.getNativeModule = exports.julianToDate = exports.dateToJulian = exports.getJulianDay = exports.setEphemerisPath = exports.getAyanamsa = exports.calculateNextMoonPhases = exports.calculateMoonPhase = exports.calculateMoonData = exports.calculateSunPath = exports.calculateSolarNoon = exports.calculateSunTimes = exports.calculateHouses = exports.calculateLagna = exports.calculatePlanetRiseSetTimes = exports.calculateSinglePlanet = exports.calculatePlanets = void 0;
 // Types
 __exportStar(require("./types"), exports);
 // Core calculation functions
@@ -47,6 +47,11 @@ Object.defineProperty(exports, "getJulianDay", { enumerable: true, get: function
 Object.defineProperty(exports, "dateToJulian", { enumerable: true, get: function () { return utils_1.dateToJulian; } });
 Object.defineProperty(exports, "julianToDate", { enumerable: true, get: function () { return utils_1.julianToDate; } });
 Object.defineProperty(exports, "getNativeModule", { enumerable: true, get: function () { return utils_1.getNativeModule; } });
+// Platform utilities (for debugging deployment issues)
+var native_loader_1 = require("./native-loader");
+Object.defineProperty(exports, "getPlatformInfo", { enumerable: true, get: function () { return native_loader_1.getPlatformInfo; } });
+Object.defineProperty(exports, "hasPrebuilds", { enumerable: true, get: function () { return native_loader_1.hasPrebuilds; } });
+Object.defineProperty(exports, "getSupportedPlatforms", { enumerable: true, get: function () { return native_loader_1.getSupportedPlatforms; } });
 // Constants
 var constants_1 = require("./constants");
 Object.defineProperty(exports, "PLANETS", { enumerable: true, get: function () { return constants_1.PLANETS; } });

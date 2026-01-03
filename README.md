@@ -2,12 +2,15 @@
 
 Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries.
 
+**✅ Vercel Compatible** - Works in serverless environments without native compilation.
+
 ## Features
 
 - 🌟 **Vedic Astrology Focus** - Calculate all 9 Vedic planets (Navagraha)
 - 🚀 **Pre-built Binaries** - No native compilation required
+- ☁️ **Vercel Ready** - Works in serverless environments out of the box
 - 📦 **Pre-compiled Distribution** - Ready-to-use dist files included
-- 🌍 **Cross-Platform** - Works on macOS, Linux, and Windows
+- 🌍 **Cross-Platform** - Works on macOS (Intel & ARM), Linux, and Windows
 - 📦 **Simple API** - Clean, TypeScript-first interface
 - ⚡ **Fast** - Native Swiss Ephemeris performance
 
@@ -572,25 +575,65 @@ const moon = calculateSinglePlanet(1, date);
 | Linux | ARM64 | ✅ |
 | Windows | x64 | ✅ |
 
+## Vercel Deployment
+
+This library is designed to work seamlessly on Vercel's serverless environment:
+
+- ✅ **No native compilation** - Pre-built binaries for linux-x64 included
+- ✅ **Zero configuration** - Works out of the box
+- ✅ **Optimized for serverless** - Fast cold starts with minimal bundle impact
+
+### Usage in Next.js API Routes
+
+```typescript
+// app/api/calculate/route.ts
+import { calculatePlanets, calculateLagna } from '@af/sweph';
+
+export async function GET() {
+  const planets = calculatePlanets(new Date());
+  return Response.json({ planets });
+}
+```
+
+### Debug Platform Info
+
+```typescript
+import { getPlatformInfo, hasPrebuilds } from '@af/sweph';
+
+// Check platform detection
+console.log(getPlatformInfo());
+// { platform: 'linux', arch: 'x64', key: 'linux-x64', isSupported: true, ... }
+
+console.log('Has prebuilds:', hasPrebuilds());
+// true
+```
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **"Failed to load Swiss Ephemeris native module"**
-   - Ensure `swisseph-v2` is installed: `npm install swisseph-v2`
+   - Ensure package version is >= 0.2.0 for Vercel compatibility
    - Check that prebuilt binaries are available for your platform
+   - For development: `pnpm add swisseph-v2` (optional fallback)
 
-2. **"Ephemeris files not found"**
+2. **Vercel deployment fails with "Cannot find module swisseph.node"**
+   - Upgrade to `@af/sweph@0.2.0` or later
+   - Clear Vercel build cache and redeploy
+   - Verify prebuilds/linux-x64/swisseph.node exists in node_modules
+
+3. **"Ephemeris files not found"**
    - Ensure `ephe/` directory exists with `.se1` files
    - Or set custom path: `setEphemerisPath('/path/to/ephe')`
 
-3. **Incorrect times**
+4. **Incorrect times**
    - Verify timezone offset is correct (e.g., 5.5 for IST, -5 for EST)
    - Ensure input dates are in local time
 
-4. **Null rise/set times**
+5. **Null rise/set times**
    - Normal for polar regions during certain seasons
    - Moon may not rise/set on some days near equator
+
 
 ## Contributing
 

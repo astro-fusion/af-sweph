@@ -4,41 +4,22 @@
 
 import path from 'path';
 import { JULIAN_UNIX_EPOCH } from './constants';
+import { loadNativeBinary } from './native-loader';
 
-// Native module instance
-let sweph: any = null;
+// Ephemeris path and initialization state
 let ephemerisPath: string | null = null;
 let isInitialized = false;
 
 /**
  * Get the native Swiss Ephemeris module
- * Automatically loads pre-built binaries or falls back to swisseph-v2
+ * Automatically loads pre-built binaries from prebuilds/ directory
+ * Falls back to swisseph-v2 if prebuilds not available (development mode)
  * @returns Swiss Ephemeris native module instance
  * @throws Error if no compatible native module can be loaded
  * @internal
  */
 export function getNativeModule(): any {
-  if (!sweph) {
-    try {
-      // Try to load pre-built binary first
-      const gypBuild = require('node-gyp-build');
-      sweph = gypBuild(path.resolve(__dirname, '..'));
-    } catch {
-      // Fall back to direct require of swisseph-v2 if prebuilds not available
-      // This allows development without prebuilds
-      try {
-        const swissephV2 = require('swisseph-v2');
-        sweph = swissephV2.default || swissephV2;
-      } catch (e) {
-        throw new Error(
-          'Failed to load Swiss Ephemeris native module. ' +
-          'Make sure swisseph-v2 is installed or prebuilds are available. ' +
-          `Error: ${e}`
-        );
-      }
-    }
-  }
-  return sweph;
+  return loadNativeBinary();
 }
 
 /**
@@ -52,7 +33,7 @@ export function initializeSweph(): void {
   if (isInitialized) return;
 
   const sweph = getNativeModule();
-  
+
   // Try to find ephemeris files
   const searchPaths = [
     ephemerisPath,
@@ -90,10 +71,14 @@ export function initializeSweph(): void {
  * initializeSweph();
  * ```
  */
-export function setEphemerisPath(path: string): void {
-  ephemerisPath = path;
-  if (sweph) {
-    sweph.swe_set_ephe_path(path);
+export function setEphemerisPath(customPath: string): void {
+  ephemerisPath = customPath;
+  // Try to set the path immediately if module is already loaded
+  try {
+    const sweph = getNativeModule();
+    sweph.swe_set_ephe_path(customPath);
+  } catch {
+    // Module not loaded yet, path will be set during initialization
   }
 }
 
@@ -113,7 +98,7 @@ export function setEphemerisPath(path: string): void {
 export function getAyanamsa(date: Date, ayanamsaType: number = 1): number {
   initializeSweph();
   const sweph = getNativeModule();
-  
+
   const jd = dateToJulian(date);
   sweph.swe_set_sid_mode(ayanamsaType, 0, 0);
   return sweph.swe_get_ayanamsa(jd);
@@ -131,14 +116,14 @@ export function getAyanamsa(date: Date, ayanamsaType: number = 1): number {
  */
 export function dateToJulian(date: Date): number {
   const sweph = getNativeModule();
-  
+
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth() + 1;
   const day = date.getUTCDate();
-  const hour = date.getUTCHours() + 
-               date.getUTCMinutes() / 60 + 
-               date.getUTCSeconds() / 3600;
-  
+  const hour = date.getUTCHours() +
+    date.getUTCMinutes() / 60 +
+    date.getUTCSeconds() / 3600;
+
   // Use Gregorian calendar (1)
   return sweph.swe_julday(year, month, day, hour, 1);
 }

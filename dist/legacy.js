@@ -114,10 +114,10 @@ function registerAdapter(_platform, _adapter) {
  */
 async function calculateKundaliPageData(birthDate, location, options = {}) {
     const [planets, lagna, sunTimes, moonData] = await Promise.all([
-        Promise.resolve((0, planets_1.calculatePlanets)(birthDate, options)),
-        Promise.resolve((0, houses_1.calculateLagna)(birthDate, location, options)),
-        Promise.resolve((0, sun_1.calculateSunTimes)(birthDate, location)),
-        Promise.resolve((0, moon_1.calculateMoonData)(birthDate, location)),
+        (0, planets_1.calculatePlanets)(birthDate, options),
+        (0, houses_1.calculateLagna)(birthDate, location, options),
+        (0, sun_1.calculateSunTimes)(birthDate, location),
+        (0, moon_1.calculateMoonData)(birthDate, location),
     ]);
     return { planets, lagna, sunTimes, moonData };
 }
