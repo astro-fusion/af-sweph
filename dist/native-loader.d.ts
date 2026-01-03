@@ -2,10 +2,17 @@
  * Load the Swiss Ephemeris native module from pre-built binaries
  * Falls back to swisseph-v2 if prebuilds are not available
  *
- * @returns Swiss Ephemeris native module instance
+ * Uses dynamic requires to prevent webpack bundling of native modules.
+ *
+ * @returns Promise resolving to Swiss Ephemeris native module instance
  * @throws Error if no compatible native module can be loaded
  */
-export declare function loadNativeBinary(): any;
+export declare function loadNativeBinary(_options?: any): Promise<any>;
+/**
+ * Synchronous version for backward compatibility
+ * Will throw if module hasn't been loaded yet via async loadNativeBinary
+ */
+export declare function getNativeModuleSync(): any;
 /**
  * Get information about the current platform
  * Useful for debugging deployment issues

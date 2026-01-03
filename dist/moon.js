@@ -143,8 +143,6 @@ function calculateMoonPhase(date) {
  */
 function calculateNextMoonPhases(date) {
     (0, utils_1.initializeSweph)();
-    const sweph = (0, utils_1.getNativeModule)();
-    const jd = (0, utils_1.dateToJulian)(date);
     // Get current phase
     const { phase: currentPhase } = calculateMoonPhase(date);
     // Calculate days until each phase

@@ -1,8 +1,12 @@
 {
   "name": "@af/sweph",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Swiss Ephemeris library for Vedic astrology calculations with pre-built native binaries - Vercel compatible",
   "main": "dist/index.js",
+  "browser": {
+    "./src/native-loader.ts": "./src/browser-loader.ts",
+    "./dist/native-loader.js": "./dist/browser-loader.js"
+  },
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
@@ -21,7 +25,9 @@
   ],
   "scripts": {
     "build": "tsc",
+    "build:check": "node scripts/check-static-requires.js",
     "build:esm": "tsc -p tsconfig.esm.json && node scripts/post-build-esm.js",
+    "build:wasm": "bash scripts/build-wasm.sh",
     "prebuild:linux": "bash scripts/build-linux-prebuild.sh",
     "copy:darwin-arm64": "mkdir -p prebuilds/darwin-arm64 && cp node_modules/swisseph-v2/build/Release/swisseph.node prebuilds/darwin-arm64/",
     "test": "vitest run",

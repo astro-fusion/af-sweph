@@ -24,7 +24,6 @@ import {
   calculateNextMoonPhases,
 } from './moon';
 
-import { getAyanamsa } from './utils';
 
 import type {
   Planet,
@@ -36,7 +35,7 @@ import type {
   NextMoonPhases,
 } from './types';
 
-import { initializeSweph as initSweph, getNativeModule } from './utils';
+import { initializeSweph as initSweph } from './utils';
 
 // ===== Legacy Type Aliases =====
 
