@@ -13,7 +13,7 @@
     "scripts": {
         "build": "tsc",
         "build:check": "node scripts/check-static-requires.js",
-        "test": "echo 'Skipping node tests' && exit 0",
+        "test": "vitest run",
         "lint": "eslint src",
         "prebuild:linux": "bash scripts/build-linux-prebuild.sh",
         "copy:darwin-arm64": "mkdir -p prebuilds/darwin-arm64 && cp ../../node_modules/swisseph-v2/build/Release/swisseph.node prebuilds/darwin-arm64/",
