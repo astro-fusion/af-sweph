@@ -620,7 +620,7 @@ console.log('Has prebuilds:', hasPrebuilds());
 2. **Vercel deployment fails with "Cannot find module swisseph.node"**
    - Upgrade to `@af/sweph@0.2.0` or later
    - Clear Vercel build cache and redeploy
-   - Verify prebuilds/linux-x64/swisseph.node exists in node_modules
+   - Verify `node_modules/@af/sweph/prebuilds/linux-x64/swisseph.node` exists.
 
 3. **"Ephemeris files not found"**
    - Ensure `ephe/` directory exists with `.se1` files

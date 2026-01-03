@@ -44,9 +44,7 @@ function isSupportedPlatform(key) {
  */
 function getPrebuildPaths(platformKey) {
     const paths = [];
-    // Standard prebuild location (when running from dist/)
-    paths.push(path_1.default.join(__dirname, '..', 'prebuilds', platformKey, 'swisseph.node'));
-    // When running from src/ during development
+    // Standard prebuild location (works from dist/ and src/)
     paths.push(path_1.default.resolve(__dirname, '..', 'prebuilds', platformKey, 'swisseph.node'));
     // Alternative: node_modules location for installed packages
     paths.push(path_1.default.resolve(process.cwd(), 'node_modules', '@af', 'sweph', 'prebuilds', platformKey, 'swisseph.node'));

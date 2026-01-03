@@ -60,9 +60,9 @@ docker run --rm \
     bash -c "
         echo '📥 Installing build dependencies...' && \
         apt-get update -qq && \
-        apt-get install -y -qq python3 make g++ > /dev/null 2>&1 && \
+        apt-get install -y -qq python3 make g++ && \
         echo '🔧 Building native module...' && \
-        npm install --ignore-scripts > /dev/null 2>&1 && \
+        npm install --ignore-scripts && \
         npm run install 2>&1 && \
         echo '✅ Build complete!' && \
         ls -la build/Release/

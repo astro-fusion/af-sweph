@@ -42,16 +42,13 @@ function isSupportedPlatform(key: string): key is SupportedPlatform {
  */
 function getPrebuildPaths(platformKey: string): string[] {
   const paths: string[] = [];
-  
-  // Standard prebuild location (when running from dist/)
-  paths.push(path.join(__dirname, '..', 'prebuilds', platformKey, 'swisseph.node'));
-  
-  // When running from src/ during development
+
+  // Standard prebuild location (works from dist/ and src/)
   paths.push(path.resolve(__dirname, '..', 'prebuilds', platformKey, 'swisseph.node'));
-  
+
   // Alternative: node_modules location for installed packages
   paths.push(path.resolve(process.cwd(), 'node_modules', '@af', 'sweph', 'prebuilds', platformKey, 'swisseph.node'));
-  
+
   return paths;
 }
 
@@ -78,10 +75,10 @@ export function loadNativeBinary(): any {
   if (nativeModule) {
     return nativeModule;
   }
-  
+
   const platformKey = getPlatformKey();
   const errors: string[] = [];
-  
+
   // 1. Try loading from prebuilds
   const prebuildPaths = getPrebuildPaths(platformKey);
   for (const binaryPath of prebuildPaths) {
@@ -92,7 +89,7 @@ export function loadNativeBinary(): any {
     }
   }
   errors.push(`No prebuild found for ${platformKey}`);
-  
+
   // 2. Try node-gyp-build (for dynamically built binaries)
   try {
     const gypBuild = require('node-gyp-build');
@@ -104,7 +101,7 @@ export function loadNativeBinary(): any {
   } catch (e) {
     errors.push(`node-gyp-build failed: ${e}`);
   }
-  
+
   // 3. Fallback to swisseph-v2 (optional dependency)
   try {
     const swissephV2 = require('swisseph-v2');
@@ -113,11 +110,11 @@ export function loadNativeBinary(): any {
   } catch (e) {
     errors.push(`swisseph-v2 fallback failed: ${e}`);
   }
-  
+
   // 4. All loading attempts failed
   const supportedList = SUPPORTED_PLATFORMS.join(', ');
   const errorDetails = errors.join('; ');
-  
+
   throw new Error(
     `Failed to load Swiss Ephemeris native module for platform '${platformKey}'. ` +
     `Supported platforms: ${supportedList}. ` +
@@ -153,7 +150,7 @@ export function getPlatformInfo(): {
 export function hasPrebuilds(): boolean {
   const platformKey = getPlatformKey();
   const prebuildPaths = getPrebuildPaths(platformKey);
-  
+
   for (const binaryPath of prebuildPaths) {
     try {
       require.resolve(binaryPath);
@@ -162,7 +159,7 @@ export function hasPrebuilds(): boolean {
       continue;
     }
   }
-  
+
   return false;
 }
 
