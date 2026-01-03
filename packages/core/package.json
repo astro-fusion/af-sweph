@@ -1,0 +1,39 @@
+{
+    "name": "@af/sweph-core",
+    "version": "0.1.0",
+    "description": "Shared types, interfaces, and utilities for @af/sweph multi-platform library",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "require": "./dist/index.js",
+            "import": "./dist/index.mjs",
+            "default": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist",
+        "src"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest run",
+        "lint": "eslint src"
+    },
+    "keywords": [
+        "swiss-ephemeris",
+        "sweph",
+        "astrology",
+        "vedic"
+    ],
+    "author": "AstroFusion <contact@astrofusion.com>",
+    "license": "MIT",
+    "devDependencies": {
+        "typescript": "^5.9.3",
+        "vitest": "^1.6.1"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}
