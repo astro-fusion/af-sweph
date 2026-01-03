@@ -1,71 +1,53 @@
 /**
  * Utility Functions for @AstroFusion/sweph
+ *
+ * This module provides shared utility functions for astronomical calculations.
+ * It lazily loads the native module to prevent webpack bundling issues.
  */
 /**
  * Get the native Swiss Ephemeris module
- * Automatically loads pre-built binaries from prebuilds/ directory
- * Falls back to swisseph-v2 if prebuilds not available (development mode)
+ * Uses lazy loading to prevent webpack from bundling native modules
+ *
  * @returns Swiss Ephemeris native module instance
- * @throws Error if no compatible native module can be loaded
+ * @throws Error if module not initialized
  * @internal
  */
 export declare function getNativeModule(): any;
 /**
  * Initialize the Swiss Ephemeris system
- * Automatically locates and sets the ephemeris data file path
- * Searches in common locations: ./ephe, ../ephe, etc.
- * @throws Error if ephemeris files cannot be found
- * @internal
- */
-export declare function initializeSweph(): void;
-/**
- * Set custom path to Swiss Ephemeris data files
- * @param path - Directory path containing ephemeris files (.se1 files)
+ * Must be called (and awaited) before using any calculation functions
+ *
+ * @param options - Optional configuration
+ * @param options.wasmUrl - Custom URL for WASM file (browser only)
+ * @throws Error if initialization fails
+ *
  * @example
  * ```typescript
- * // Set custom ephemeris path
- * setEphemerisPath('/path/to/ephemeris/files');
+ * // Initialize before using
+ * await initializeSweph();
  *
- * // Then initialize
- * initializeSweph();
+ * // Now you can use calculation functions
+ * const planets = calculatePlanets(new Date());
  * ```
+ */
+export declare function initializeSweph(options?: {
+    wasmUrl?: string;
+}): Promise<void>;
+/**
+ * Set custom path to Swiss Ephemeris data files
+ * @param customPath - Directory path containing ephemeris files (.se1 files)
  */
 export declare function setEphemerisPath(customPath: string): void;
 /**
  * Get the ayanamsa correction value for sidereal calculations
- * @param date - Date for ayanamsa calculation
- * @param ayanamsaType - Ayanamsa system identifier (default: 1 = Lahiri)
- * @returns Ayanamsa value in degrees to subtract from tropical longitude
- * @example
- * ```typescript
- * import { AYANAMSA } from '@AstroFusion/sweph';
- *
- * const ayanamsa = getAyanamsa(new Date(), AYANAMSA.LAHIRI);
- * console.log(`Lahiri ayanamsa: ${ayanamsa.toFixed(4)}°`);
- * ```
  */
 export declare function getAyanamsa(date: Date, ayanamsaType?: number): number;
 /**
  * Convert JavaScript Date to Julian Day number
- * @param date - JavaScript Date object
- * @returns Julian Day number (days since J2000 epoch)
- * @example
- * ```typescript
- * const jd = dateToJulian(new Date('2024-01-01'));
- * console.log(`Julian Day: ${jd}`); // ~2460311.5
- * ```
  */
 export declare function dateToJulian(date: Date): number;
 /**
  * Convert Julian Day number to JavaScript Date
- * @param jd - Julian Day number
- * @param timezoneOffset - Timezone offset in hours (e.g., 5.5 for IST)
- * @returns JavaScript Date object
- * @example
- * ```typescript
- * const date = julianToDate(2460311.5, 5.5); // IST timezone
- * console.log(date.toISOString()); // 2024-01-01T00:00:00.000Z (adjusted)
- * ```
  */
 export declare function julianToDate(jd: number, timezoneOffset?: number): Date;
 /**
@@ -74,14 +56,6 @@ export declare function julianToDate(jd: number, timezoneOffset?: number): Date;
 export declare function getJulianDay(date: Date): number;
 /**
  * Normalize ecliptic longitude to 0-360° range
- * @param longitude - Longitude value (can be any number)
- * @returns Normalized longitude between 0° and 360°
- * @example
- * ```typescript
- * normalizeLongitude(370);  // 10
- * normalizeLongitude(-10);  // 350
- * normalizeLongitude(360);  // 0
- * ```
  */
 export declare function normalizeLongitude(longitude: number): number;
 /**
@@ -100,14 +74,6 @@ export declare function getRashiDegree(longitude: number): number;
 export declare function isRetrograde(speed: number): boolean;
 /**
  * Calculate nakshatra (lunar mansion) from ecliptic longitude
- * @param longitude - Ecliptic longitude in degrees
- * @returns Object containing nakshatra number (1-27) and pada (1-4)
- * @example
- * ```typescript
- * const nakshatra = getNakshatra(45.5);
- * console.log(`Nakshatra ${nakshatra.number}, Pada ${nakshatra.pada}`);
- * // Output: Nakshatra 4, Pada 1 (Ardra)
- * ```
  */
 export declare function getNakshatra(longitude: number): {
     number: number;
@@ -115,12 +81,6 @@ export declare function getNakshatra(longitude: number): {
 };
 /**
  * Helper to call swe_rise_trans with fallback for different signatures
- * Provides compatibility with different versions of swisseph-v2 library
- * @param jd - Julian day number
- * @param id - Planet/celestial body identifier
- * @param flag - Rise/set calculation flag
- * @param location - Geographic location coordinates
- * @returns Result of swe_rise_trans call
  * @internal
  */
 export declare function callRiseTrans(jd: number, id: number, flag: number, location: {
@@ -129,11 +89,6 @@ export declare function callRiseTrans(jd: number, id: number, flag: number, loca
 }): any;
 /**
  * Helper to call swe_azalt with fallback for different signatures
- * Provides compatibility with different versions of swisseph-v2 library
- * @param jd - Julian day number
- * @param location - Geographic location coordinates
- * @param planetPos - Celestial body position in ecliptic coordinates
- * @returns Result of swe_azalt call
  * @internal
  */
 export declare function callAzAlt(jd: number, location: {

@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loadNativeBinary = loadNativeBinary;
+exports.getNativeModuleSync = getNativeModuleSync;
 exports.getPlatformInfo = getPlatformInfo;
 exports.hasPrebuilds = hasPrebuilds;
 exports.getSupportedPlatforms = getSupportedPlatforms;
@@ -13,11 +14,33 @@ exports.getSupportedPlatforms = getSupportedPlatforms;
  *
  * This module handles loading the correct native binary for the current platform,
  * enabling Vercel serverless deployment without native compilation.
+ *
+ * IMPORTANT: All require() calls use dynamic loading to prevent webpack from
+ * bundling native binaries at build time.
  */
 const path_1 = __importDefault(require("path"));
 const os_1 = require("os");
 // Cached native module instance
 let nativeModule = null;
+let loading = false;
+let loadPromise = null;
+/**
+ * Dynamic require that webpack cannot detect at build time
+ * Uses module.createRequire for ESM compatibility
+ */
+const dynamicRequire = (moduleName) => {
+    // Use createRequire for ESM compatibility (Node.js 12+)
+    // This is wrapped in a try-catch to handle different module systems
+    try {
+        const { createRequire } = require('module');
+        const customRequire = createRequire(__filename);
+        return customRequire(moduleName);
+    }
+    catch {
+        // Fallback: try direct require (CommonJS)
+        return require(moduleName);
+    }
+};
 /**
  * Supported platform configurations
  */
@@ -51,11 +74,11 @@ function getPrebuildPaths(platformKey) {
     return paths;
 }
 /**
- * Try to load a native binary from the given path
+ * Try to load a native binary from the given path using dynamic require
  */
 function tryLoadBinary(binaryPath) {
     try {
-        return require(binaryPath);
+        return dynamicRequire(binaryPath);
     }
     catch {
         return null;
@@ -65,54 +88,79 @@ function tryLoadBinary(binaryPath) {
  * Load the Swiss Ephemeris native module from pre-built binaries
  * Falls back to swisseph-v2 if prebuilds are not available
  *
- * @returns Swiss Ephemeris native module instance
+ * Uses dynamic requires to prevent webpack bundling of native modules.
+ *
+ * @returns Promise resolving to Swiss Ephemeris native module instance
  * @throws Error if no compatible native module can be loaded
  */
-function loadNativeBinary() {
+async function loadNativeBinary(_options) {
     // Return cached module if already loaded
     if (nativeModule) {
         return nativeModule;
     }
-    const platformKey = getPlatformKey();
-    const errors = [];
-    // 1. Try loading from prebuilds
-    const prebuildPaths = getPrebuildPaths(platformKey);
-    for (const binaryPath of prebuildPaths) {
-        const module = tryLoadBinary(binaryPath);
-        if (module) {
-            nativeModule = module;
+    // If already loading, wait for the existing promise
+    if (loading && loadPromise) {
+        return loadPromise;
+    }
+    loading = true;
+    loadPromise = (async () => {
+        const platformKey = getPlatformKey();
+        const errors = [];
+        // 1. Try loading from prebuilds (primary method for Vercel)
+        const prebuildPaths = getPrebuildPaths(platformKey);
+        for (const binaryPath of prebuildPaths) {
+            const module = tryLoadBinary(binaryPath);
+            if (module) {
+                nativeModule = module;
+                loading = false;
+                return nativeModule;
+            }
+        }
+        errors.push(`No prebuild found for ${platformKey}`);
+        // 2. Try node-gyp-build (for dynamically built binaries in development)
+        try {
+            const gypBuild = dynamicRequire('node-gyp-build');
+            const module = gypBuild(path_1.default.resolve(__dirname, '..'));
+            if (module) {
+                nativeModule = module;
+                loading = false;
+                return nativeModule;
+            }
+        }
+        catch (e) {
+            errors.push(`node-gyp-build failed: ${e.message || e}`);
+        }
+        // 3. Fallback to swisseph-v2 (optional dependency, development only)
+        try {
+            const swissephV2 = dynamicRequire('swisseph-v2');
+            nativeModule = swissephV2.default || swissephV2;
+            loading = false;
             return nativeModule;
         }
-    }
-    errors.push(`No prebuild found for ${platformKey}`);
-    // 2. Try node-gyp-build (for dynamically built binaries)
-    try {
-        const gypBuild = require('node-gyp-build');
-        const module = gypBuild(path_1.default.resolve(__dirname, '..'));
-        if (module) {
-            nativeModule = module;
-            return nativeModule;
+        catch (e) {
+            errors.push(`swisseph-v2 fallback failed: ${e.message || e}`);
         }
+        // 4. All loading attempts failed
+        loading = false;
+        const supportedList = SUPPORTED_PLATFORMS.join(', ');
+        const errorDetails = errors.join('; ');
+        throw new Error(`Failed to load Swiss Ephemeris native module for platform '${platformKey}'. ` +
+            `Supported platforms: ${supportedList}. ` +
+            `Details: ${errorDetails}. ` +
+            `For Vercel deployment, ensure prebuilds/${platformKey}/swisseph.node is included in the package.`);
+    })();
+    return loadPromise;
+}
+/**
+ * Synchronous version for backward compatibility
+ * Will throw if module hasn't been loaded yet via async loadNativeBinary
+ */
+function getNativeModuleSync() {
+    if (!nativeModule) {
+        throw new Error('Swiss Ephemeris module not initialized. ' +
+            'Call await initializeSweph() before using calculation functions.');
     }
-    catch (e) {
-        errors.push(`node-gyp-build failed: ${e}`);
-    }
-    // 3. Fallback to swisseph-v2 (optional dependency)
-    try {
-        const swissephV2 = require('swisseph-v2');
-        nativeModule = swissephV2.default || swissephV2;
-        return nativeModule;
-    }
-    catch (e) {
-        errors.push(`swisseph-v2 fallback failed: ${e}`);
-    }
-    // 4. All loading attempts failed
-    const supportedList = SUPPORTED_PLATFORMS.join(', ');
-    const errorDetails = errors.join('; ');
-    throw new Error(`Failed to load Swiss Ephemeris native module for platform '${platformKey}'. ` +
-        `Supported platforms: ${supportedList}. ` +
-        `Details: ${errorDetails}. ` +
-        `For Vercel deployment, ensure prebuilds/linux-x64/swisseph.node is included in the package.`);
+    return nativeModule;
 }
 /**
  * Get information about the current platform
@@ -136,7 +184,9 @@ function hasPrebuilds() {
     const prebuildPaths = getPrebuildPaths(platformKey);
     for (const binaryPath of prebuildPaths) {
         try {
-            require.resolve(binaryPath);
+            // Use dynamic require.resolve
+            const resolveFn = new Function('moduleName', 'return require.resolve(moduleName)');
+            resolveFn(binaryPath);
             return true;
         }
         catch {

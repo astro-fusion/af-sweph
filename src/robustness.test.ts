@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import {
   PlanetId,
   calculatePlanets,
@@ -9,8 +9,12 @@ import {
   calculateNextMoonPhases,
   calculatePlanetRiseSetTimes
 } from './index';
+import { initializeSweph } from './utils';
 
 describe('SWEPH Robustness Tests', () => {
+  beforeAll(async () => {
+    await initializeSweph();
+  });
   const testDate = new Date('2025-01-01T12:00:00Z');
   // Kathmandu, Nepal
   const location = {
@@ -108,9 +112,9 @@ describe('SWEPH Robustness Tests', () => {
 
     it.each(planetsForRiseSetTest)('should calculate rise/set for planet %s', async (planet) => {
       const result = await calculatePlanetRiseSetTimes(
-          planet,
-          testDate,
-          locationOptions
+        planet,
+        testDate,
+        locationOptions
       );
       expect(result).toBeDefined();
     });

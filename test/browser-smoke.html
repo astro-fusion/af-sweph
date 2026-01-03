@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWEPH WASM Smoke Test</title>
+</head>
+<body>
+    <h1>SWEPH WASM Smoke Test</h1>
+    <div id="status">Loading...</div>
+    <div id="output" style="white-space: pre-wrap; font-family: monospace;"></div>
+
+    <!-- We need to load the built library. 
+         Since we export a UMD or CommonJS, loading in browser might require a bundler or a specific UMD build.
+         However, the WASM loader uses dynamic import of the swisseph.js which is fine.
+         But the main library entry point (dist/index.js) is CommonJS (require).
+         Browser cannot load CommonJS comfortably without a bundler.
+         
+         For this smoke test, we really should use a bundler or just test the WASM module directly + wrapper code manually.
+         Or we can use a simple esbuild script to bundle the smoke test.
+    -->
+    
+    <script type="module">
+        // Minimal smoke test using the generated WASM module directly to verify it works
+        // The full library requires bundling CommonJS to browser
+        
+        // We will try to fetch the WASM glue code directly
+        import createSwephModule from '../prebuilds/wasm/swisseph.js';
+
+        async function runTest() {
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+            
+            try {
+                status.textContent = 'Initializing WASM...';
+                
+                const module = await createSwephModule({
+                    locateFile: (path) => {
+                        if (path.endsWith('.wasm')) return '../prebuilds/wasm/swisseph.wasm';
+                        return path;
+                    }
+                });
+                
+                status.textContent = 'WASM Initialized. Running calculations...';
+                
+                const log = (msg) => {
+                    console.log(msg);
+                    output.textContent += msg + '\n';
+                };
+                
+                // Test 1: Version
+                const ptr = module._malloc(256);
+                module._swe_version(ptr);
+                const version = module.UTF8ToString(ptr);
+                module._free(ptr);
+                log(`Swiss Ephemeris Version: ${version}`);
+                
+                // Test 2: Julian Day
+                const jd = module._swe_julday(2024, 1, 1, 12, 1);
+                log(`JD for 2024-01-01 12:00: ${jd}`);
+                
+                if (Math.abs(jd - 2460311.0) < 0.001) {
+                    log('✅ User Verification: JD calculation correct!');
+                } else {
+                    log('❌ User Verification: JD calculation incorrect!');
+                }
+
+                status.textContent = 'Test Complete';
+                
+            } catch (e) {
+                status.textContent = 'Error: ' + e.message;
+                console.error(e);
+            }
+        }
+        
+        runTest();
+    </script>
+</body>
+</html>

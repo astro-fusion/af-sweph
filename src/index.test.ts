@@ -1,7 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import * as sweph from './index';
+import { initializeSweph } from './utils';
 
 describe('@AstroFusion/sweph', () => {
+  beforeAll(async () => {
+    await initializeSweph();
+  });
   it('should export all main functions', () => {
     expect(typeof sweph.calculatePlanets).toBe('function');
     expect(typeof sweph.calculateLagna).toBe('function');

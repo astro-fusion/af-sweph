@@ -1,58 +1,90 @@
 /**
  * Utility Functions for @AstroFusion/sweph
+ * 
+ * This module provides shared utility functions for astronomical calculations.
+ * It lazily loads the native module to prevent webpack bundling issues.
  */
 
 import path from 'path';
 import { JULIAN_UNIX_EPOCH } from './constants';
-import { loadNativeBinary } from './native-loader';
 
 // Ephemeris path and initialization state
 let ephemerisPath: string | null = null;
 let isInitialized = false;
+let cachedNativeModule: any = null;
+
+// Simple browser detection
+const isBrowser = typeof (globalThis as any).window !== 'undefined' && typeof (globalThis as any).window.document !== 'undefined';
 
 /**
  * Get the native Swiss Ephemeris module
- * Automatically loads pre-built binaries from prebuilds/ directory
- * Falls back to swisseph-v2 if prebuilds not available (development mode)
+ * Uses lazy loading to prevent webpack from bundling native modules
+ * 
  * @returns Swiss Ephemeris native module instance
- * @throws Error if no compatible native module can be loaded
+ * @throws Error if module not initialized
  * @internal
  */
 export function getNativeModule(): any {
-  return loadNativeBinary();
+  if (!cachedNativeModule) {
+    throw new Error(
+      'Swiss Ephemeris module not initialized. ' +
+      'Call await initializeSweph() before using calculation functions.'
+    );
+  }
+  return cachedNativeModule;
 }
 
 /**
  * Initialize the Swiss Ephemeris system
- * Automatically locates and sets the ephemeris data file path
- * Searches in common locations: ./ephe, ../ephe, etc.
- * @throws Error if ephemeris files cannot be found
- * @internal
+ * Must be called (and awaited) before using any calculation functions
+ * 
+ * @param options - Optional configuration
+ * @param options.wasmUrl - Custom URL for WASM file (browser only)
+ * @throws Error if initialization fails
+ * 
+ * @example
+ * ```typescript
+ * // Initialize before using
+ * await initializeSweph();
+ * 
+ * // Now you can use calculation functions
+ * const planets = calculatePlanets(new Date());
+ * ```
  */
-export function initializeSweph(): void {
-  if (isInitialized) return;
+export async function initializeSweph(options?: { wasmUrl?: string }): Promise<void> {
+  if (isInitialized && cachedNativeModule) return;
 
-  const sweph = getNativeModule();
+  // Dynamically import the appropriate loader based on environment
+  // This prevents webpack from bundling both loaders
+  if (isBrowser) {
+    const { loadNativeBinary } = await import('./browser-loader');
+    cachedNativeModule = await loadNativeBinary(options);
+  } else {
+    const { loadNativeBinary } = await import('./native-loader');
+    cachedNativeModule = await loadNativeBinary(options);
 
-  // Try to find ephemeris files
-  const searchPaths = [
-    ephemerisPath,
-    path.resolve(__dirname, '..', 'ephe'),
-    path.resolve(process.cwd(), 'ephe'),
-    path.resolve(process.cwd(), 'lib', 'ephe'),
-    path.resolve(process.cwd(), 'public', 'ephe'),
-  ].filter(Boolean) as string[];
+    // Try to find ephemeris files (Node only)
+    const searchPaths = [
+      ephemerisPath,
+      path.resolve(__dirname, '..', 'ephe'),
+      path.resolve(process.cwd(), 'ephe'),
+      path.resolve(process.cwd(), 'lib', 'ephe'),
+      path.resolve(process.cwd(), 'public', 'ephe'),
+    ].filter(Boolean) as string[];
 
-  for (const ephePath of searchPaths) {
-    try {
-      const fs = require('fs');
-      if (fs.existsSync(ephePath)) {
-        sweph.swe_set_ephe_path(ephePath);
-        ephemerisPath = ephePath;
-        break;
+    for (const ephePath of searchPaths) {
+      try {
+        // Dynamic require for fs to avoid webpack bundling
+        const dynamicRequire = new Function('moduleName', 'return require(moduleName)');
+        const fs = dynamicRequire('fs');
+        if (fs.existsSync(ephePath)) {
+          cachedNativeModule.swe_set_ephe_path(ephePath);
+          ephemerisPath = ephePath;
+          break;
+        }
+      } catch {
+        // Ignore and try next path
       }
-    } catch {
-      // Ignore and try next path
     }
   }
 
@@ -61,44 +93,24 @@ export function initializeSweph(): void {
 
 /**
  * Set custom path to Swiss Ephemeris data files
- * @param path - Directory path containing ephemeris files (.se1 files)
- * @example
- * ```typescript
- * // Set custom ephemeris path
- * setEphemerisPath('/path/to/ephemeris/files');
- *
- * // Then initialize
- * initializeSweph();
- * ```
+ * @param customPath - Directory path containing ephemeris files (.se1 files)
  */
 export function setEphemerisPath(customPath: string): void {
   ephemerisPath = customPath;
-  // Try to set the path immediately if module is already loaded
-  try {
-    const sweph = getNativeModule();
-    sweph.swe_set_ephe_path(customPath);
-  } catch {
-    // Module not loaded yet, path will be set during initialization
+  if (cachedNativeModule) {
+    try {
+      cachedNativeModule.swe_set_ephe_path(customPath);
+    } catch {
+      // Module might not support this method in all environments
+    }
   }
 }
 
 /**
  * Get the ayanamsa correction value for sidereal calculations
- * @param date - Date for ayanamsa calculation
- * @param ayanamsaType - Ayanamsa system identifier (default: 1 = Lahiri)
- * @returns Ayanamsa value in degrees to subtract from tropical longitude
- * @example
- * ```typescript
- * import { AYANAMSA } from '@AstroFusion/sweph';
- *
- * const ayanamsa = getAyanamsa(new Date(), AYANAMSA.LAHIRI);
- * console.log(`Lahiri ayanamsa: ${ayanamsa.toFixed(4)}°`);
- * ```
  */
 export function getAyanamsa(date: Date, ayanamsaType: number = 1): number {
-  initializeSweph();
   const sweph = getNativeModule();
-
   const jd = dateToJulian(date);
   sweph.swe_set_sid_mode(ayanamsaType, 0, 0);
   return sweph.swe_get_ayanamsa(jd);
@@ -106,13 +118,6 @@ export function getAyanamsa(date: Date, ayanamsaType: number = 1): number {
 
 /**
  * Convert JavaScript Date to Julian Day number
- * @param date - JavaScript Date object
- * @returns Julian Day number (days since J2000 epoch)
- * @example
- * ```typescript
- * const jd = dateToJulian(new Date('2024-01-01'));
- * console.log(`Julian Day: ${jd}`); // ~2460311.5
- * ```
  */
 export function dateToJulian(date: Date): number {
   const sweph = getNativeModule();
@@ -124,20 +129,11 @@ export function dateToJulian(date: Date): number {
     date.getUTCMinutes() / 60 +
     date.getUTCSeconds() / 3600;
 
-  // Use Gregorian calendar (1)
   return sweph.swe_julday(year, month, day, hour, 1);
 }
 
 /**
  * Convert Julian Day number to JavaScript Date
- * @param jd - Julian Day number
- * @param timezoneOffset - Timezone offset in hours (e.g., 5.5 for IST)
- * @returns JavaScript Date object
- * @example
- * ```typescript
- * const date = julianToDate(2460311.5, 5.5); // IST timezone
- * console.log(date.toISOString()); // 2024-01-01T00:00:00.000Z (adjusted)
- * ```
  */
 export function julianToDate(jd: number, timezoneOffset: number = 0): Date {
   const utcMs = (jd - JULIAN_UNIX_EPOCH) * 86400000;
@@ -153,14 +149,6 @@ export function getJulianDay(date: Date): number {
 
 /**
  * Normalize ecliptic longitude to 0-360° range
- * @param longitude - Longitude value (can be any number)
- * @returns Normalized longitude between 0° and 360°
- * @example
- * ```typescript
- * normalizeLongitude(370);  // 10
- * normalizeLongitude(-10);  // 350
- * normalizeLongitude(360);  // 0
- * ```
  */
 export function normalizeLongitude(longitude: number): number {
   let norm = longitude % 360;
@@ -193,19 +181,11 @@ export function isRetrograde(speed: number): boolean {
 
 /**
  * Calculate nakshatra (lunar mansion) from ecliptic longitude
- * @param longitude - Ecliptic longitude in degrees
- * @returns Object containing nakshatra number (1-27) and pada (1-4)
- * @example
- * ```typescript
- * const nakshatra = getNakshatra(45.5);
- * console.log(`Nakshatra ${nakshatra.number}, Pada ${nakshatra.pada}`);
- * // Output: Nakshatra 4, Pada 1 (Ardra)
- * ```
  */
 export function getNakshatra(longitude: number): { number: number; pada: number } {
   const norm = normalizeLongitude(longitude);
-  const nakshatraSpan = 360 / 27; // 13.333... degrees each
-  const padaSpan = nakshatraSpan / 4; // ~3.333 degrees each
+  const nakshatraSpan = 360 / 27;
+  const padaSpan = nakshatraSpan / 4;
 
   const nakshatraNumber = Math.floor(norm / nakshatraSpan) + 1;
   const positionInNakshatra = norm % nakshatraSpan;
@@ -216,12 +196,6 @@ export function getNakshatra(longitude: number): { number: number; pada: number 
 
 /**
  * Helper to call swe_rise_trans with fallback for different signatures
- * Provides compatibility with different versions of swisseph-v2 library
- * @param jd - Julian day number
- * @param id - Planet/celestial body identifier
- * @param flag - Rise/set calculation flag
- * @param location - Geographic location coordinates
- * @returns Result of swe_rise_trans call
  * @internal
  */
 export function callRiseTrans(
@@ -234,7 +208,6 @@ export function callRiseTrans(
   const SEFLG_SWIEPH = sweph.SEFLG_SWIEPH || 2;
 
   try {
-    // Try flat arguments first (swisseph-v2 style)
     return sweph.swe_rise_trans(
       jd, id, '', SEFLG_SWIEPH, flag,
       location.longitude, location.latitude, 0,
@@ -242,7 +215,6 @@ export function callRiseTrans(
     );
   } catch (error: any) {
     if (error && error.message && error.message.includes('Wrong type of arguments')) {
-      // Try array argument for geopos (standard swisseph style)
       return sweph.swe_rise_trans(
         jd, id, '', SEFLG_SWIEPH, flag,
         [location.longitude, location.latitude, 0],
@@ -255,11 +227,6 @@ export function callRiseTrans(
 
 /**
  * Helper to call swe_azalt with fallback for different signatures
- * Provides compatibility with different versions of swisseph-v2 library
- * @param jd - Julian day number
- * @param location - Geographic location coordinates
- * @param planetPos - Celestial body position in ecliptic coordinates
- * @returns Result of swe_azalt call
  * @internal
  */
 export function callAzAlt(
@@ -273,28 +240,25 @@ export function callAzAlt(
   const xin = [planetPos.longitude, planetPos.latitude, planetPos.distance];
   const errors: string[] = [];
 
-  // Attempt 1: Standard swisseph arguments with all parameters
   try {
     return sweph.swe_azalt(
       jd,
-      sweph.SE_EQU2HOR || 0x0800, // Flag to convert equatorial to horizontal
+      sweph.SE_EQU2HOR || 0x0800,
       geopos,
-      0, // Pressure (0 = default 1013.25 mbar)
-      10, // Temperature (10C)
+      0,
+      10,
       xin
     );
   } catch (error: any) {
     errors.push(`Attempt 1 failed: ${error.message}`);
   }
 
-  // Attempt 2: Fewer parameters
   try {
     return sweph.swe_azalt(jd, geopos, xin);
   } catch (error: any) {
     errors.push(`Attempt 2 failed: ${error.message}`);
   }
 
-  // Attempt 3: Flat arguments
   try {
     return sweph.swe_azalt(
       jd,
@@ -307,8 +271,6 @@ export function callAzAlt(
     errors.push(`Attempt 3 failed: ${error.message}`);
   }
 
-  // All attempts failed
-  console.warn('swe_azalt call failed. All attempts failed. Errors:', errors.join('; '));
-  // Consider returning null or throwing an error to signal failure explicitly
+  console.warn('swe_azalt call failed. Errors:', errors.join('; '));
   return { azimuth: 0, altitude: 0 };
 }
