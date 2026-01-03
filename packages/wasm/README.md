@@ -24,4 +24,6 @@ async function calculate() {
   const planets = sweph.calculatePlanets(new Date());
   console.log(planets);
 }
+
+calculate();
 ```
