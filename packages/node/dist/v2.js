@@ -21,6 +21,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HouseSystem = exports.PlanetId = exports.AyanamsaType = exports.NAKSHATRAS = exports.RASHIS = exports.AYANAMSA = exports.PLANETS = void 0;
 exports.createSweph = createSweph;
+exports.withSwephInstance = withSwephInstance;
+exports.createServerlessSweph = createServerlessSweph;
 const planets_1 = require("./planets");
 const houses_1 = require("./houses");
 const sun_1 = require("./sun");
@@ -62,6 +64,14 @@ Object.defineProperty(exports, "NAKSHATRAS", { enumerable: true, get: function (
  * ```
  */
 async function createSweph(options) {
+    // Detect serverless environment and apply optimizations
+    const isServerlessEnv = options?.serverlessMode ??
+        !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME ||
+            process.env.FUNCTION_NAME || process.env.K_SERVICE || process.env.NETLIFY);
+    // Set serverless-specific environment variables
+    if (isServerlessEnv && options?.enableCaching === false) {
+        process.env.SWEPH_CACHE_MODULE = 'false';
+    }
     // Auto-initialize the native module
     await (0, utils_1.initializeSweph)();
     // Set ephemeris path if provided
@@ -77,7 +87,6 @@ async function createSweph(options) {
                 location: opts?.location ? {
                     latitude: opts.location.latitude,
                     longitude: opts.location.longitude,
-                    timezone: opts.location.timezone ?? opts?.timezone ?? 0,
                 } : undefined,
             };
             // Handle timezone offset
@@ -91,18 +100,17 @@ async function createSweph(options) {
                 location: opts?.location ? {
                     latitude: opts.location.latitude,
                     longitude: opts.location.longitude,
-                    timezone: opts.location.timezone ?? opts?.timezone ?? 0,
                 } : undefined,
             };
             const tzOffset = opts?.timezone ?? opts?.location?.timezone ?? 0;
             const utcDate = new Date(date.getTime() - tzOffset * 60 * 60 * 1000);
             return (0, planets_1.calculateSinglePlanet)(planetId, utcDate, calcOpts);
         },
-        async calculateRiseSet(planetId, date, location) {
+        async calculateRiseSet(planetId, date, location, opts) {
             const geoLoc = {
                 latitude: location.latitude,
                 longitude: location.longitude,
-                timezone: location.timezone ?? 0,
+                timezone: opts?.timezone ?? location.timezone ?? 0,
             };
             const result = (0, planets_1.calculatePlanetRiseSetTimes)(planetId, date, geoLoc);
             return {
@@ -147,7 +155,7 @@ async function createSweph(options) {
                 longitude: location.longitude,
                 timezone: location.timezone ?? 0,
             };
-            return (0, sun_1.calculateSunPath)(date, geoLoc);
+            return (0, sun_1.calculateSunPath)(date, geoLoc, intervalMinutes);
         },
         // Moon
         async calculateMoonData(date, location) {
@@ -174,6 +182,13 @@ async function createSweph(options) {
         setEphePath(path) {
             (0, utils_1.setEphemerisPath)(path);
         },
+        // Cache management
+        clearCaches() {
+            (0, utils_1.clearAllCaches)();
+        },
+        setCaching(enabled) {
+            (0, utils_1.setCachingEnabled)(enabled);
+        },
         // Constants
         PLANETS: constants_1.PLANETS,
         AYANAMSA: constants_1.AYANAMSA,
@@ -190,6 +205,79 @@ async function createSweph(options) {
         }
     }
     return instance;
+}
+// ============================================================================
+// Re-exports for convenience
+// ============================================================================
+// ============================================================================
+// Serverless Connection Pool
+// ============================================================================
+/**
+ * Serverless connection pool for optimal instance reuse
+ */
+class SwephConnectionPool {
+    pool = [];
+    maxSize;
+    initialized = false;
+    constructor(maxSize = 3) {
+        this.maxSize = maxSize;
+    }
+    async getInstance(options) {
+        // Return existing instance if available
+        if (this.pool.length > 0) {
+            return this.pool.pop();
+        }
+        // Create new instance if pool is not full
+        if (!this.initialized || this.pool.length < this.maxSize) {
+            this.initialized = true;
+            return await createSweph({
+                serverlessMode: true,
+                enableCaching: true,
+                ...options
+            });
+        }
+        // Wait for an instance to become available (shouldn't happen in normal usage)
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return this.getInstance(options);
+    }
+    returnInstance(instance) {
+        if (this.pool.length < this.maxSize) {
+            // Clear caches before returning to pool
+            instance.clearCaches();
+            this.pool.push(instance);
+        }
+    }
+    async cleanup() {
+        this.pool = [];
+        this.initialized = false;
+    }
+}
+// Global pool instance
+const globalPool = new SwephConnectionPool();
+/**
+ * Get a SwephInstance from the connection pool
+ * Automatically returns instance to pool after use
+ */
+async function withSwephInstance(callback, options) {
+    const instance = await globalPool.getInstance(options);
+    try {
+        return await callback(instance);
+    }
+    finally {
+        globalPool.returnInstance(instance);
+    }
+}
+/**
+ * Create a dedicated SwephInstance for serverless environments
+ * with optimized settings
+ */
+async function createServerlessSweph(options) {
+    return await createSweph({
+        serverlessMode: true,
+        enableCaching: true,
+        preWarm: true,
+        ...options
+    });
 }
 var types_1 = require("./types");
 Object.defineProperty(exports, "AyanamsaType", { enumerable: true, get: function () { return types_1.AyanamsaType; } });

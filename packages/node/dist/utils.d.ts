@@ -6,6 +6,30 @@
  */
 export { normalizeLongitude, getRashi, getRashiDegree, isRetrograde, getNakshatra, julianToDate, formatLongitude } from '@af/sweph-core';
 /**
+ * Generate cache key for planetary calculations
+ */
+export declare function getPlanetCacheKey(date: Date, options: any): string;
+/**
+ * Generate cache key for sun calculations
+ */
+export declare function getSunCacheKey(date: Date, location?: any): string;
+/**
+ * Generate cache key for moon calculations
+ */
+export declare function getMoonCacheKey(date: Date): string;
+/**
+ * Generate cache key for lagna calculations
+ */
+export declare function getLagnaCacheKey(date: Date, location: any, options: any): string;
+/**
+ * Clear all caches (useful for memory management in serverless)
+ */
+export declare function clearAllCaches(): void;
+/**
+ * Enable/disable caching globally
+ */
+export declare function setCachingEnabled(enabled: boolean): void;
+/**
  * Get the native Swiss Ephemeris module
  * Uses lazy loading to prevent webpack from bundling native modules
  *

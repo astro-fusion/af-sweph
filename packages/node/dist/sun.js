@@ -146,12 +146,13 @@ function calculateAzAlt(jd, location, planetPos) {
     };
 }
 /**
- * Calculate daily sun path (position every hour)
+ * Calculate daily sun path (position at specified intervals)
  * @param date - Date for calculation
  * @param location - Geographic location
+ * @param intervalMinutes - Interval between points in minutes (default: 60)
  * @returns Array of sun positions
  */
-function calculateSunPath(date, location) {
+function calculateSunPath(date, location, intervalMinutes = 60) {
     (0, utils_1.initializeSweph)();
     const sweph = (0, utils_1.getNativeModule)();
     const timezone = location.timezone ?? 0;
@@ -159,9 +160,11 @@ function calculateSunPath(date, location) {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const path = [];
-    // Calculate for every hour of the day (0 to 23)
-    for (let i = 0; i < 24; i++) {
-        const time = new Date(startOfDay.getTime() + i * 60 * 60 * 1000);
+    // Calculate for the day based on interval
+    const totalMinutes = 24 * 60;
+    const steps = Math.floor(totalMinutes / intervalMinutes);
+    for (let i = 0; i <= steps; i++) {
+        const time = new Date(startOfDay.getTime() + i * intervalMinutes * 60 * 1000);
         // Convert to UTC for calculation
         const utcTime = new Date(time.getTime() - timezone * 60 * 60 * 1000);
         const jd = (0, utils_1.dateToJulian)(utcTime);

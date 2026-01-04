@@ -3,7 +3,7 @@
  */
 
 import type { Planet, CalculationOptions, GeoLocation } from './types';
-import { VEDIC_PLANET_ORDER, OUTER_PLANETS, CALC_FLAGS, RASHIS } from './constants';
+import { VEDIC_PLANET_ORDER, OUTER_PLANETS, CALC_FLAGS } from './constants';
 import {
   initializeSweph,
   getNativeModule,

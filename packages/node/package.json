@@ -3,8 +3,15 @@
     "version": "0.3.0",
     "description": "Node.js bindings for Swiss Ephemeris",
     "main": "dist/index.js",
-    "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "require": "./dist/index.js",
+            "default": "./dist/index.js"
+        }
+    },
+    "sideEffects": false,
     "files": [
         "dist",
         "prebuilds",
@@ -16,7 +23,11 @@
         "test": "vitest run",
         "lint": "eslint src",
         "prebuild:linux": "bash scripts/build-linux-prebuild.sh",
+        "prebuild:linux-arm64": "bash scripts/build-linux-arm64-prebuild.sh",
+        "prebuild:win32": "bash scripts/build-win32-prebuild.sh",
         "copy:darwin-arm64": "mkdir -p prebuilds/darwin-arm64 && cp ../../node_modules/swisseph-v2/build/Release/swisseph.node prebuilds/darwin-arm64/",
+        "copy:darwin-x64": "mkdir -p prebuilds/darwin-x64 && cp ../../node_modules/swisseph-v2/build/Release/swisseph.node prebuilds/darwin-x64/",
+        "build:all-prebuilds": "pnpm run prebuild:linux && pnpm run prebuild:linux-arm64 && echo 'Note: Windows builds require Windows environment'",
         "validate-dist": "node -e \"require('./dist/index.js'); console.log('✅ Dist files are valid');\"",
         "check-platform": "node -e \"const {getPlatformInfo}=require('./dist/native-loader');console.log(JSON.stringify(getPlatformInfo(),null,2));\""
     },
@@ -28,8 +39,9 @@
         "swisseph-v2": "^1.0.4"
     },
     "devDependencies": {
+        "@types/node": "^20.12.7",
+        "@vitest/coverage-v8": "^1.6.1",
         "typescript": "^5.9.3",
-        "vitest": "^1.6.1",
-        "@types/node": "^20.12.7"
+        "vitest": "^1.6.1"
     }
 }

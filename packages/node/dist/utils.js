@@ -10,6 +10,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatLongitude = exports.julianToDate = exports.getNakshatra = exports.isRetrograde = exports.getRashiDegree = exports.getRashi = exports.normalizeLongitude = void 0;
+exports.getPlanetCacheKey = getPlanetCacheKey;
+exports.getSunCacheKey = getSunCacheKey;
+exports.getMoonCacheKey = getMoonCacheKey;
+exports.getLagnaCacheKey = getLagnaCacheKey;
+exports.clearAllCaches = clearAllCaches;
+exports.setCachingEnabled = setCachingEnabled;
 exports.getNativeModule = getNativeModule;
 exports.initializeSweph = initializeSweph;
 exports.setEphemerisPath = setEphemerisPath;
@@ -33,6 +39,102 @@ Object.defineProperty(exports, "formatLongitude", { enumerable: true, get: funct
 let ephemerisPath = null;
 let isInitialized = false;
 let cachedNativeModule = null;
+class ServerlessCache {
+    cache = new Map();
+    maxSize;
+    defaultTTL;
+    enabled;
+    constructor(maxSize = 1000, defaultTTL = 5 * 60 * 1000) {
+        this.maxSize = maxSize;
+        this.defaultTTL = defaultTTL;
+        this.enabled = process.env.SWEPH_DISABLE_CACHE !== 'true';
+    }
+    set(key, value, ttl) {
+        if (!this.enabled)
+            return;
+        // Simple LRU eviction
+        if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey) {
+                this.cache.delete(firstKey);
+            }
+        }
+        this.cache.set(key, {
+            value,
+            timestamp: Date.now(),
+            ttl: ttl ?? this.defaultTTL
+        });
+    }
+    get(key) {
+        if (!this.enabled)
+            return undefined;
+        const entry = this.cache.get(key);
+        if (!entry)
+            return undefined;
+        // Check if expired
+        if (Date.now() - entry.timestamp > entry.ttl) {
+            this.cache.delete(key);
+            return undefined;
+        }
+        return entry.value;
+    }
+    clear() {
+        this.cache.clear();
+    }
+    setEnabled(enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            this.clear();
+        }
+    }
+}
+// Global cache instances for different calculation types
+const planetCache = new ServerlessCache();
+const sunCache = new ServerlessCache();
+const moonCache = new ServerlessCache();
+const lagnaCache = new ServerlessCache();
+/**
+ * Generate cache key for planetary calculations
+ */
+function getPlanetCacheKey(date, options) {
+    return `planet_${date.getTime()}_${JSON.stringify(options)}`;
+}
+/**
+ * Generate cache key for sun calculations
+ */
+function getSunCacheKey(date, location) {
+    return `sun_${date.getTime()}_${location ? `${location.latitude}_${location.longitude}` : 'global'}`;
+}
+/**
+ * Generate cache key for moon calculations
+ */
+function getMoonCacheKey(date) {
+    return `moon_${date.getTime()}`;
+}
+/**
+ * Generate cache key for lagna calculations
+ */
+function getLagnaCacheKey(date, location, options) {
+    return `lagna_${date.getTime()}_${location.latitude}_${location.longitude}_${JSON.stringify(options)}`;
+}
+/**
+ * Clear all caches (useful for memory management in serverless)
+ */
+function clearAllCaches() {
+    planetCache.clear();
+    sunCache.clear();
+    moonCache.clear();
+    lagnaCache.clear();
+}
+/**
+ * Enable/disable caching globally
+ */
+function setCachingEnabled(enabled) {
+    planetCache.setEnabled(enabled);
+    sunCache.setEnabled(enabled);
+    moonCache.setEnabled(enabled);
+    lagnaCache.setEnabled(enabled);
+}
 /**
  * Get the native Swiss Ephemeris module
  * Uses lazy loading to prevent webpack from bundling native modules

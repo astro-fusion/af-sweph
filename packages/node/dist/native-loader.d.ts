@@ -3,6 +3,7 @@
  * Falls back to swisseph-v2 if prebuilds are not available
  *
  * Uses dynamic requires to prevent webpack bundling of native modules.
+ * Optimized for serverless environments with intelligent caching.
  *
  * @returns Promise resolving to Swiss Ephemeris native module instance
  * @throws Error if no compatible native module can be loaded

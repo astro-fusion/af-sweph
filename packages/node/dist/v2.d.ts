@@ -27,6 +27,10 @@ export interface SwephInitOptions {
     ephePath?: string;
     /** Pre-warm calculations on init (slightly slower startup, faster first call) */
     preWarm?: boolean;
+    /** Enable caching for repeated calculations (default: true, disable in memory-constrained serverless) */
+    enableCaching?: boolean;
+    /** Serverless optimization mode (automatically detected, but can be overridden) */
+    serverlessMode?: boolean;
 }
 /**
  * Location with optional timezone
@@ -87,9 +91,10 @@ export interface SwephInstance {
      * @param planetId - Planet ID
      * @param date - Date for calculation
      * @param location - Geographic location
+     * @param options - Calculation options (timezone)
      * @returns Rise, set, and transit times
      */
-    calculateRiseSet(planetId: number, date: Date, location: Location): Promise<RiseSetTransit>;
+    calculateRiseSet(planetId: number, date: Date, location: Location, options?: PlanetOptions): Promise<RiseSetTransit>;
     /**
      * Calculate Lagna (Ascendant) and houses
      * @param date - Date/time for calculation
@@ -172,6 +177,15 @@ export interface SwephInstance {
     readonly RASHIS: typeof RASHIS;
     /** Nakshatra names */
     readonly NAKSHATRAS: typeof NAKSHATRAS;
+    /**
+     * Clear all calculation caches
+     */
+    clearCaches(): void;
+    /**
+     * Enable or disable caching for performance optimization
+     * @param enabled - Whether to enable caching
+     */
+    setCaching(enabled: boolean): void;
 }
 /**
  * Create a SwephInstance with auto-initialization
@@ -201,6 +215,16 @@ export interface SwephInstance {
  * ```
  */
 export declare function createSweph(options?: SwephInitOptions): Promise<SwephInstance>;
+/**
+ * Get a SwephInstance from the connection pool
+ * Automatically returns instance to pool after use
+ */
+export declare function withSwephInstance<T>(callback: (sweph: SwephInstance) => Promise<T>, options?: SwephInitOptions): Promise<T>;
+/**
+ * Create a dedicated SwephInstance for serverless environments
+ * with optimized settings
+ */
+export declare function createServerlessSweph(options?: SwephInitOptions): Promise<SwephInstance>;
 export { PLANETS, AYANAMSA, RASHIS, NAKSHATRAS };
 export { AyanamsaType, PlanetId, HouseSystem } from './types';
 export type { Planet, GeoLocation, SunTimes, MoonData, MoonPhase, LagnaInfo, NextMoonPhases, CalculationOptions, };
