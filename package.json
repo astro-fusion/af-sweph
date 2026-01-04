@@ -31,8 +31,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
-    "prepare": "husky"
+    "lint": "pnpm -r lint"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
