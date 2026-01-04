@@ -1,6 +1,33 @@
 {
-  "name": "@af/sweph-monorepo",
+  "name": "@af/sweph",
+  "version": "0.3.0",
+  "description": "Swiss Ephemeris for Vedic Astrology - Node.js, Browser (WASM), and React Native",
   "private": true,
+  "main": "./packages/node/dist/index.js",
+  "types": "./packages/node/dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./packages/node/dist/index.d.ts",
+      "require": "./packages/node/dist/index.js",
+      "import": "./packages/node/dist/index.js",
+      "default": "./packages/node/dist/index.js"
+    },
+    "./node": {
+      "types": "./packages/node/dist/index.d.ts",
+      "require": "./packages/node/dist/index.js",
+      "import": "./packages/node/dist/index.js"
+    },
+    "./wasm": {
+      "types": "./packages/wasm/dist/index.d.ts",
+      "require": "./packages/wasm/dist/index.js",
+      "import": "./packages/wasm/dist/index.js"
+    },
+    "./core": {
+      "types": "./packages/core/dist/index.d.ts",
+      "require": "./packages/core/dist/index.js",
+      "import": "./packages/core/dist/index.js"
+    }
+  },
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
@@ -19,5 +46,24 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astro-fusion/af-sweph.git"
+  },
+  "keywords": [
+    "swiss-ephemeris",
+    "sweph",
+    "astrology",
+    "vedic",
+    "jyotish",
+    "horoscope",
+    "planets"
+  ],
+  "author": "AstroFusion <contact@astrofusion.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/astro-fusion/af-sweph/issues"
+  },
+  "homepage": "https://github.com/astro-fusion/af-sweph#readme"
 }
