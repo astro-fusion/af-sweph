@@ -26,6 +26,124 @@ let ephemerisPath: string | null = null;
 let isInitialized = false;
 let cachedNativeModule: any = null;
 
+// Serverless-aware result caching
+interface CacheEntry<T> {
+  value: T;
+  timestamp: number;
+  ttl: number;
+}
+
+class ServerlessCache<T> {
+  private cache = new Map<string, CacheEntry<T>>();
+  private maxSize: number;
+  private defaultTTL: number;
+  private enabled: boolean;
+
+  constructor(maxSize = 1000, defaultTTL = 5 * 60 * 1000) { // 5 minutes default TTL
+    this.maxSize = maxSize;
+    this.defaultTTL = defaultTTL;
+    this.enabled = process.env.SWEPH_DISABLE_CACHE !== 'true';
+  }
+
+  set(key: string, value: T, ttl?: number): void {
+    if (!this.enabled) return;
+
+    // Simple LRU eviction
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
+    }
+
+    this.cache.set(key, {
+      value,
+      timestamp: Date.now(),
+      ttl: ttl ?? this.defaultTTL
+    });
+  }
+
+  get(key: string): T | undefined {
+    if (!this.enabled) return undefined;
+
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+
+    // Check if expired
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      return undefined;
+    }
+
+    return entry.value;
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) {
+      this.clear();
+    }
+  }
+}
+
+// Global cache instances for different calculation types
+const planetCache = new ServerlessCache<any>();
+const sunCache = new ServerlessCache<any>();
+const moonCache = new ServerlessCache<any>();
+const lagnaCache = new ServerlessCache<any>();
+
+/**
+ * Generate cache key for planetary calculations
+ */
+export function getPlanetCacheKey(date: Date, options: any): string {
+  return `planet_${date.getTime()}_${JSON.stringify(options)}`;
+}
+
+/**
+ * Generate cache key for sun calculations
+ */
+export function getSunCacheKey(date: Date, location?: any): string {
+  return `sun_${date.getTime()}_${location ? `${location.latitude}_${location.longitude}` : 'global'}`;
+}
+
+/**
+ * Generate cache key for moon calculations
+ */
+export function getMoonCacheKey(date: Date): string {
+  return `moon_${date.getTime()}`;
+}
+
+/**
+ * Generate cache key for lagna calculations
+ */
+export function getLagnaCacheKey(date: Date, location: any, options: any): string {
+  return `lagna_${date.getTime()}_${location.latitude}_${location.longitude}_${JSON.stringify(options)}`;
+}
+
+/**
+ * Clear all caches (useful for memory management in serverless)
+ */
+export function clearAllCaches(): void {
+  planetCache.clear();
+  sunCache.clear();
+  moonCache.clear();
+  lagnaCache.clear();
+}
+
+/**
+ * Enable/disable caching globally
+ */
+export function setCachingEnabled(enabled: boolean): void {
+  planetCache.setEnabled(enabled);
+  sunCache.setEnabled(enabled);
+  moonCache.setEnabled(enabled);
+  lagnaCache.setEnabled(enabled);
+}
+
 /**
  * Get the native Swiss Ephemeris module
  * Uses lazy loading to prevent webpack from bundling native modules

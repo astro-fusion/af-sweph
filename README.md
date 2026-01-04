@@ -210,6 +210,144 @@ NAKSHATRAS[27]; // "Revati"
 
 ---
 
+## 🚀 Serverless Deployment
+
+### Vercel Deployment
+
+@af/sweph is optimized for Vercel serverless functions. Here's the recommended setup:
+
+#### 1. Environment Variables
+```bash
+# In Vercel dashboard or vercel.json
+NODE_VERSION=20
+SWEPH_DISABLE_CACHE=false  # Enable caching for better performance
+```
+
+#### 2. Function Configuration
+```typescript
+// api/planets.ts
+import { createSweph } from '@af/sweph';
+
+export default async function handler(req, res) {
+  // Create optimized instance for serverless
+  const sweph = await createSweph({
+    serverlessMode: true,
+    enableCaching: true
+  });
+
+  const planets = await sweph.calculatePlanets(new Date());
+  res.status(200).json(planets);
+}
+```
+
+#### 3. Bundle Size Optimization
+```javascript
+// next.config.js
+module.exports = {
+  experimental: {
+    serverComponentsExternalPackages: ['@af/sweph']
+  },
+  webpack: (config) => {
+    // Exclude native binaries from bundling
+    config.externals.push({
+      '@af/sweph': '@af/sweph'
+    });
+    return config;
+  }
+};
+```
+
+### AWS Lambda Deployment
+
+For AWS Lambda, use the Node.js runtime with the provided prebuilds:
+
+```typescript
+// lambda/index.js
+const { createSweph } = require('@af/sweph');
+
+let swephInstance = null;
+
+exports.handler = async (event) => {
+  // Reuse instance across warm invocations
+  if (!swephInstance) {
+    swephInstance = await createSweph({
+      serverlessMode: true,
+      enableCaching: true
+    });
+  }
+
+  const result = await swephInstance.calculatePlanets(new Date());
+  return {
+    statusCode: 200,
+    body: JSON.stringify(result)
+  };
+};
+```
+
+### Netlify Functions
+
+```typescript
+// netlify/functions/planets.ts
+import { createSweph } from '@af/sweph';
+
+export async function handler(event) {
+  const sweph = await createSweph({
+    serverlessMode: true,
+    enableCaching: true
+  });
+
+  const planets = await sweph.calculatePlanets(new Date());
+  return {
+    statusCode: 200,
+    body: JSON.stringify(planets)
+  };
+}
+```
+
+### Serverless Performance Tips
+
+#### Memory Management
+```typescript
+// For memory-constrained environments
+const sweph = await createSweph({
+  serverlessMode: true,
+  enableCaching: false  // Disable caching to save memory
+});
+```
+
+#### Connection Pooling
+```typescript
+import { withSwephInstance, createServerlessSweph } from '@af/sweph';
+
+// Option 1: Automatic connection pooling
+export default async function handler(req, res) {
+  const result = await withSwephInstance(async (sweph) => {
+    return await sweph.calculatePlanets(new Date());
+  });
+  res.json(result);
+}
+
+// Option 2: Dedicated serverless instance
+let swephInstance = null;
+
+export default async function handler(req, res) {
+  if (!swephInstance) {
+    swephInstance = await createServerlessSweph();
+  }
+  const result = await swephInstance.calculatePlanets(new Date());
+  res.json(result);
+}
+```
+
+#### Cold Start Optimization
+```typescript
+// Pre-warm critical calculations
+const sweph = await createSweph({
+  preWarm: true,  // Slightly slower init, but faster first request
+  serverlessMode: true
+});
+```
+
 ## 🐛 Troubleshooting
 
 ### Module not found on Vercel
@@ -223,6 +361,84 @@ ls node_modules/@af/sweph/prebuilds/
 ### Native module errors
 
 Set `NODE_VERSION=20` in your environment.
+
+### Memory issues in serverless
+
+Disable caching to reduce memory usage:
+```bash
+SWEPH_DISABLE_CACHE=true
+```
+
+Or in code:
+```typescript
+const sweph = await createSweph({
+  serverlessMode: true,
+  enableCaching: false
+});
+```
+
+### Bundle size issues
+
+Use dynamic imports for better tree shaking:
+```typescript
+const { createSweph } = await import('@af/sweph');
+```
+
+### Building additional platform binaries
+
+For production deployments to less common platforms:
+
+```bash
+# Build linux-arm64 (AWS Lambda Graviton)
+pnpm run prebuild:linux-arm64
+
+# Build Windows x64 (requires Windows environment)
+pnpm run prebuild:win32
+
+# Build all available platforms
+pnpm run build:all-prebuilds
+```
+
+## 📁 Project Structure & Templates
+
+Quick setup templates are available in the `templates/` directory:
+
+- `vercel-api.ts` - Vercel API routes (Pages Router & App Router)
+- `aws-lambda.ts` - AWS Lambda functions
+- `netlify-function.ts` - Netlify Functions
+- `nextjs-component.tsx` - Next.js client components
+
+## 🔧 Advanced Configuration
+
+### Environment Variables
+
+```bash
+# Disable caching in memory-constrained environments
+SWEPH_DISABLE_CACHE=true
+
+# Disable native module caching in serverless
+SWEPH_CACHE_MODULE=false
+
+# Set Node.js version for Vercel
+NODE_VERSION=20
+```
+
+### Custom Ephemeris Path
+
+```typescript
+const sweph = await createSweph({
+  ephePath: '/custom/path/to/ephemeris'
+});
+```
+
+### Platform-Specific Builds
+
+The library includes pre-built binaries for:
+- `linux-x64` (Vercel, AWS Lambda, most Linux servers)
+- `linux-arm64` (AWS Lambda Graviton, ARM64 Linux)
+- `darwin-arm64` (macOS M1/M2/M3)
+- `darwin-x64` (macOS Intel)
+- `win32-x64` (Windows x64)
 
 ---
 

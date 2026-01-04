@@ -1,0 +1,15 @@
+{
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    },
+    "api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["fra1", "iad1", "sfo1"],
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "framework": null,
+  "installCommand": "pnpm install --frozen-lockfile"
+}

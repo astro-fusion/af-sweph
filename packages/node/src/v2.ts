@@ -24,10 +24,10 @@ import {
   calculatePlanetRiseSetTimes,
 } from './planets';
 
-import { calculateLagna, calculateHouses } from './houses';
+import { calculateLagna } from './houses';
 import { calculateSunTimes, calculateSolarNoon, calculateSunPath } from './sun';
 import { calculateMoonData, calculateMoonPhase, calculateNextMoonPhases } from './moon';
-import { initializeSweph, setEphemerisPath, getAyanamsa, dateToJulian } from './utils';
+import { initializeSweph, setEphemerisPath, getAyanamsa, dateToJulian, clearAllCaches, setCachingEnabled } from './utils';
 import { PLANETS, AYANAMSA, RASHIS, NAKSHATRAS } from './constants';
 
 import type {
@@ -53,6 +53,10 @@ export interface SwephInitOptions {
   ephePath?: string;
   /** Pre-warm calculations on init (slightly slower startup, faster first call) */
   preWarm?: boolean;
+  /** Enable caching for repeated calculations (default: true, disable in memory-constrained serverless) */
+  enableCaching?: boolean;
+  /** Serverless optimization mode (automatically detected, but can be overridden) */
+  serverlessMode?: boolean;
 }
 
 /**
@@ -225,6 +229,19 @@ export interface SwephInstance {
   
   /** Nakshatra names */
   readonly NAKSHATRAS: typeof NAKSHATRAS;
+
+  // === Cache Management ===
+
+  /**
+   * Clear all calculation caches
+   */
+  clearCaches(): void;
+
+  /**
+   * Enable or disable caching for performance optimization
+   * @param enabled - Whether to enable caching
+   */
+  setCaching(enabled: boolean): void;
 }
 
 // ============================================================================
@@ -259,9 +276,19 @@ export interface SwephInstance {
  * ```
  */
 export async function createSweph(options?: SwephInitOptions): Promise<SwephInstance> {
+  // Detect serverless environment and apply optimizations
+  const isServerlessEnv = options?.serverlessMode ??
+    !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME ||
+       process.env.FUNCTION_NAME || process.env.K_SERVICE || process.env.NETLIFY);
+
+  // Set serverless-specific environment variables
+  if (isServerlessEnv && options?.enableCaching === false) {
+    process.env.SWEPH_CACHE_MODULE = 'false';
+  }
+
   // Auto-initialize the native module
   await initializeSweph();
-  
+
   // Set ephemeris path if provided
   if (options?.ephePath) {
     setEphemerisPath(options.ephePath);
@@ -354,7 +381,7 @@ export async function createSweph(options?: SwephInitOptions): Promise<SwephInst
         longitude: location.longitude,
         timezone: location.timezone ?? 0,
       };
-      return calculateSunPath(date, geoLoc);
+      return calculateSunPath(date, geoLoc, intervalMinutes);
     },
     
     // Moon
@@ -387,7 +414,16 @@ export async function createSweph(options?: SwephInitOptions): Promise<SwephInst
     setEphePath(path: string): void {
       setEphemerisPath(path);
     },
-    
+
+    // Cache management
+    clearCaches(): void {
+      clearAllCaches();
+    },
+
+    setCaching(enabled: boolean): void {
+      setCachingEnabled(enabled);
+    },
+
     // Constants
     PLANETS,
     AYANAMSA,
@@ -410,6 +446,90 @@ export async function createSweph(options?: SwephInitOptions): Promise<SwephInst
 // ============================================================================
 // Re-exports for convenience
 // ============================================================================
+
+// ============================================================================
+// Serverless Connection Pool
+// ============================================================================
+
+/**
+ * Serverless connection pool for optimal instance reuse
+ */
+class SwephConnectionPool {
+  private pool: SwephInstance[] = [];
+  private maxSize: number;
+  private initialized = false;
+
+  constructor(maxSize = 3) {
+    this.maxSize = maxSize;
+  }
+
+  async getInstance(options?: SwephInitOptions): Promise<SwephInstance> {
+    // Return existing instance if available
+    if (this.pool.length > 0) {
+      return this.pool.pop()!;
+    }
+
+    // Create new instance if pool is not full
+    if (!this.initialized || this.pool.length < this.maxSize) {
+      this.initialized = true;
+      return await createSweph({
+        serverlessMode: true,
+        enableCaching: true,
+        ...options
+      });
+    }
+
+    // Wait for an instance to become available (shouldn't happen in normal usage)
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return this.getInstance(options);
+  }
+
+  returnInstance(instance: SwephInstance): void {
+    if (this.pool.length < this.maxSize) {
+      // Clear caches before returning to pool
+      instance.clearCaches();
+      this.pool.push(instance);
+    }
+  }
+
+  async cleanup(): Promise<void> {
+    this.pool = [];
+    this.initialized = false;
+  }
+}
+
+// Global pool instance
+const globalPool = new SwephConnectionPool();
+
+/**
+ * Get a SwephInstance from the connection pool
+ * Automatically returns instance to pool after use
+ */
+export async function withSwephInstance<T>(
+  callback: (sweph: SwephInstance) => Promise<T>,
+  options?: SwephInitOptions
+): Promise<T> {
+  const instance = await globalPool.getInstance(options);
+
+  try {
+    return await callback(instance);
+  } finally {
+    globalPool.returnInstance(instance);
+  }
+}
+
+/**
+ * Create a dedicated SwephInstance for serverless environments
+ * with optimized settings
+ */
+export async function createServerlessSweph(options?: SwephInitOptions): Promise<SwephInstance> {
+  return await createSweph({
+    serverlessMode: true,
+    enableCaching: true,
+    preWarm: true,
+    ...options
+  });
+}
 
 export { PLANETS, AYANAMSA, RASHIS, NAKSHATRAS };
 export { AyanamsaType, PlanetId, HouseSystem } from './types';

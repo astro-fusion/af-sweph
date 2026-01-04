@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Native Binary Loader for @af/sweph
  * Loads platform-specific pre-built Swiss Ephemeris binaries
@@ -15,6 +17,26 @@ import { platform, arch } from 'os';
 let nativeModule: any = null;
 let loading = false;
 let loadPromise: Promise<any> | null = null;
+
+// Serverless environment detection
+const isServerless = (): boolean => {
+  return !!(
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.FUNCTION_NAME ||
+    process.env.K_SERVICE ||
+    process.env.NETLIFY
+  );
+};
+
+// Memory optimization for serverless: limit module caching in high-concurrency environments
+const shouldCacheModule = (): boolean => {
+  // In serverless environments, prefer fresh instances to avoid memory leaks
+  if (isServerless()) {
+    return process.env.SWEPH_CACHE_MODULE === 'true';
+  }
+  return true;
+};
 
 /**
  * Dynamic require that webpack cannot detect at build time
@@ -37,10 +59,12 @@ const dynamicRequire = (moduleName: string): any => {
  * Supported platform configurations
  */
 const SUPPORTED_PLATFORMS = [
-  'linux-x64',    // Vercel, AWS Lambda, most Linux servers
-  'darwin-arm64', // macOS M1/M2/M3
-  'darwin-x64',   // macOS Intel
-  'win32-x64',    // Windows x64
+  'linux-x64',     // Vercel, AWS Lambda, most Linux servers
+  'linux-arm64',   // AWS Lambda Graviton, some Linux servers
+  'darwin-arm64',  // macOS M1/M2/M3
+  'darwin-x64',    // macOS Intel
+  'win32-x64',     // Windows x64
+  'win32-arm64',   // Windows ARM64
 ] as const;
 
 type SupportedPlatform = typeof SUPPORTED_PLATFORMS[number];
@@ -88,15 +112,16 @@ function tryLoadBinary(binaryPath: string): any | null {
 /**
  * Load the Swiss Ephemeris native module from pre-built binaries
  * Falls back to swisseph-v2 if prebuilds are not available
- * 
+ *
  * Uses dynamic requires to prevent webpack bundling of native modules.
- * 
+ * Optimized for serverless environments with intelligent caching.
+ *
  * @returns Promise resolving to Swiss Ephemeris native module instance
  * @throws Error if no compatible native module can be loaded
  */
 export async function loadNativeBinary(_options?: any): Promise<any> {
-  // Return cached module if already loaded
-  if (nativeModule) {
+  // Return cached module if already loaded and caching is enabled
+  if (nativeModule && shouldCacheModule()) {
     return nativeModule;
   }
 
@@ -115,9 +140,12 @@ export async function loadNativeBinary(_options?: any): Promise<any> {
     for (const binaryPath of prebuildPaths) {
       const module = tryLoadBinary(binaryPath);
       if (module) {
-        nativeModule = module;
+        // Cache module only if caching is enabled
+        if (shouldCacheModule()) {
+          nativeModule = module;
+        }
         loading = false;
-        return nativeModule;
+        return module;
       }
     }
     errors.push(`No prebuild found for ${platformKey}`);
@@ -150,11 +178,15 @@ export async function loadNativeBinary(_options?: any): Promise<any> {
     const supportedList = SUPPORTED_PLATFORMS.join(', ');
     const errorDetails = errors.join('; ');
 
+    const serverlessHint = isServerless()
+      ? ' For serverless platforms (Vercel, AWS Lambda, etc.), ensure prebuilds are included in your deployment package.'
+      : '';
+
     throw new Error(
       `Failed to load Swiss Ephemeris native module for platform '${platformKey}'. ` +
       `Supported platforms: ${supportedList}. ` +
-      `Details: ${errorDetails}. ` +
-      `For Vercel deployment, ensure prebuilds/${platformKey}/swisseph.node is included in the package.`
+      `Details: ${errorDetails}.${serverlessHint}` +
+      ` Try setting SWEPH_CACHE_MODULE=false if you encounter memory issues in serverless environments.`
     );
   })();
 

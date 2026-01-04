@@ -29,12 +29,13 @@ export declare function calculateSunTimes(date: Date, location: GeoLocation): Su
  */
 export declare function calculateSolarNoon(date: Date, location: GeoLocation): SolarNoonResult;
 /**
- * Calculate daily sun path (position every hour)
+ * Calculate daily sun path (position at specified intervals)
  * @param date - Date for calculation
  * @param location - Geographic location
+ * @param intervalMinutes - Interval between points in minutes (default: 60)
  * @returns Array of sun positions
  */
-export declare function calculateSunPath(date: Date, location: GeoLocation): {
+export declare function calculateSunPath(date: Date, location: GeoLocation, intervalMinutes?: number): {
     time: Date;
     azimuth: number;
     altitude: number;
