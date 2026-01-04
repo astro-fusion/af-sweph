@@ -1,103 +1,238 @@
-# @af/sweph Monorepo
+# @af/sweph
 
 The ultimate Swiss Ephemeris library for Vedic Astrology, supporting Node.js, Browser (WASM), and React Native with a unified API.
 
 [![CI](https://github.com/astro-fusion/af-sweph/actions/workflows/ci.yml/badge.svg)](https://github.com/astro-fusion/af-sweph/actions/workflows/ci.yml)
 [![Build](https://github.com/astro-fusion/af-sweph/actions/workflows/build.yml/badge.svg)](https://github.com/astro-fusion/af-sweph/actions/workflows/build.yml)
 
-## 🌟 Multi-Platform Architecture
+## 🌟 Features
 
-This library is architected as a monorepo to provide optimized implementations for every target platform while maintaining a consistent developer experience.
+- **✅ Auto-initialization** - Native module loads automatically
+- **✅ TypeScript First** - Complete type safety with IntelliSense
+- **✅ Vedic Astrology** - Ayanamsa, Rashis, Nakshatras built-in
+- **✅ Multi-Platform** - Node.js, Browser (WASM), React Native
+- **✅ Vercel Ready** - Pre-built binaries for serverless
 
-| Package | Environment | Core Technology | Description |
-|---------|-------------|-----------------|-------------|
-| [`@af/sweph-core`](./packages/core) | All | TypeScript | Shared logic, interfaces, and pure JS utilities. |
-| [`@af/sweph-node`](./packages/node) | Node.js | Native C++ | High-performance implementation using native binaries. |
-| [`@af/sweph-wasm`](./packages/wasm) | Browser | WebAssembly | Optimized for web with async loading support. |
-| [`@af/sweph-react-native`](./packages/react-native) | Mobile | JSI/Turbo Modules | Native iOS and Android implementation. |
+## 🚀 Quick Start
 
----
-
-## 🚀 Quick Start (Unified API)
-
-Regardless of the platform, the API remains consistent via the `ISwephInstance` interface.
-
-### 1. Installation
-
-Pick the package for your target platform:
+### Installation
 
 ```bash
-# For Node.js / Serverless (Vercel)
-pnpm add @af/sweph-node
+# npm
+npm install @af/sweph
 
-# For Browser applications
-pnpm add @af/sweph-wasm
+# pnpm
+pnpm add @af/sweph
 
-# For React Native applications
-pnpm add @af/sweph-react-native
+# Or from GitHub
+pnpm add github:astro-fusion/af-sweph
 ```
 
-### 2. Usage Example
+### Usage
 
 ```typescript
-import { createSweph } from '@af/sweph-node'; // Or @af/sweph-wasm / @af/sweph-react-native
+import { createSweph, AYANAMSA } from '@af/sweph';
 
-async function run() {
-  // 1. Initialize the instance
+async function main() {
+  // Create instance (auto-initializes native module)
   const sweph = await createSweph();
 
-  // 2. Perform calculations
-  const date = new Date();
-  const planets = sweph.calculatePlanets(date, {
-    ayanamsa: 1, // Lahiri
-    location: { latitude: 27.7, longitude: 85.3 }
+  // Define calculation date once for consistency
+  const calculationDate = new Date();
+
+  // Calculate planetary positions
+  const planets = await sweph.calculatePlanets(calculationDate, {
+    ayanamsa: AYANAMSA.LAHIRI,
+    timezone: 5.75, // Nepal
   });
 
-  console.log(planets);
+  console.log('Sun:', planets.find(p => p.id === 'sun'));
+  console.log('Moon:', planets.find(p => p.id === 'moon'));
+
+  // Calculate Lagna (Ascendant)
+  const lagna = await sweph.calculateLagna(
+    calculationDate,
+    { latitude: 27.7, longitude: 85.3, timezone: 5.75 },
+    { ayanamsa: AYANAMSA.LAHIRI }
+  );
+
+  console.log('Ascendant:', lagna.longitude, 'in', sweph.RASHIS[lagna.rasi]);
+
+  // Calculate Moon Phase
+  const moonPhase = await sweph.calculateMoonPhase(calculationDate);
+  console.log('Moon Phase:', moonPhase.phaseName, `(${Math.round(moonPhase.illumination * 100)}%)`);
 }
+
+main();
 ```
 
 ---
 
-## 📦 Packages
+## 📦 API Reference
 
-### [@af/sweph-core](./packages/core)
-The backbone of the library. Contains all shared types, constant definitions (Planet IDs, Ayanamsas), and pure JavaScript utilities that don't depend on a native environment.
+### `createSweph(options?): Promise<SwephInstance>`
 
-### [@af/sweph-node](./packages/node)
-The successor to the original `@af/sweph`. It includes pre-built binaries for Linux, macOS, and Windows. It is specifically optimized for **Vercel** and other serverless environments, requiring zero native compilation at deploy time.
+Creates an auto-initialized Swiss Ephemeris instance.
 
-### [@af/sweph-wasm](./packages/wasm)
-A WebAssembly-powered implementation designed for browser environments. It handles the async loading of the `.wasm` binary and provides a type-safe wrapper. Perfect for static sites or client-side calculation needs.
+```typescript
+const sweph = await createSweph({
+  ephePath: '/path/to/ephemeris', // Optional: custom ephemeris path
+  preWarm: true, // Optional: pre-calculate to warm cache
+});
+```
 
-### [@af/sweph-react-native](./packages/react-native)
-Utilizes **Turbo Modules** and **JSI** to bridge the Swiss Ephemeris C library directly into React Native. This provides near-native performance on both iOS and Android without crossing the traditional asynchronous bridge.
+### SwephInstance Methods
+
+#### Planetary Calculations
+
+```typescript
+// All 9 Vedic planets
+const planets = await sweph.calculatePlanets(date, {
+  ayanamsa: AYANAMSA.LAHIRI, // Lahiri
+  timezone: 0, // UTC
+});
+
+// Single planet (0=Sun, 1=Moon, 2=Mars, etc.)
+const sun = await sweph.calculatePlanet(0, date, { ayanamsa: AYANAMSA.LAHIRI });
+
+// Rise, Set, Transit times
+const riseSet = await sweph.calculateRiseSet(0, date, {
+  latitude: 27.7,
+  longitude: 85.3,
+});
+```
+
+#### Lagna & Houses
+
+```typescript
+const lagna = await sweph.calculateLagna(
+  date,
+  { latitude: 27.7, longitude: 85.3 },
+  { ayanamsa: AYANAMSA.LAHIRI }
+);
+
+console.log(lagna.longitude); // Ascendant in degrees
+console.log(lagna.rasi); // Ascendant sign (1-12)
+console.log(lagna.houses); // Array of 12 house cusps
+```
+
+#### Sun Calculations
+
+```typescript
+const date = new Date();
+const location = { latitude: 27.7, longitude: 85.3 };
+
+// Sunrise, Sunset, Solar Noon
+const sunTimes = await sweph.calculateSunTimes(date, location);
+
+// Solar Noon with altitude
+const noon = await sweph.calculateSolarNoon(date, location);
+
+// Sun path throughout the day
+const path = await sweph.calculateSunPath(date, location);
+```
+
+#### Moon Calculations
+
+```typescript
+const date = new Date();
+const location = { latitude: 27.7, longitude: 85.3 };
+
+// Moon data (position, rise/set, phase)
+const moonData = await sweph.calculateMoonData(date, location);
+
+// Current moon phase
+const phase = await sweph.calculateMoonPhase(date);
+console.log(phase.phaseName); // "Waxing Crescent", "Full Moon", etc.
+console.log(phase.illumination); // 0.0 to 1.0
+
+// Next moon phases
+const nextPhases = await sweph.calculateNextMoonPhases(date);
+console.log('Next New Moon:', nextPhases.newMoon);
+console.log('Next Full Moon:', nextPhases.fullMoon);
+```
+
+#### Utilities
+
+```typescript
+// Get ayanamsa value
+const ayanamsa = sweph.getAyanamsa(date, AYANAMSA.LAHIRI);
+
+// Convert to Julian Day
+const jd = sweph.dateToJulian(date);
+
+// Set ephemeris path
+sweph.setEphePath('/custom/path/to/ephe');
+```
+
+### Constants
+
+```typescript
+import { PLANETS, AYANAMSA, RASHIS, NAKSHATRAS } from '@af/sweph';
+
+// Planet IDs
+PLANETS.SUN;     // 0
+PLANETS.MOON;    // 1
+PLANETS.MARS;    // 4
+PLANETS.MERCURY; // 2
+PLANETS.JUPITER; // 5
+PLANETS.VENUS;   // 3
+PLANETS.SATURN;  // 6
+PLANETS.RAHU;    // 10
+PLANETS.KETU;    // 11
+
+// Ayanamsa types
+AYANAMSA.LAHIRI;       // 1 (default)
+AYANAMSA.KRISHNAMURTI; // 5
+AYANAMSA.RAMAN;        // 3
+
+// Rashi names
+RASHIS[1];  // "Aries"
+RASHIS[4];  // "Cancer"
+RASHIS[10]; // "Capricorn"
+
+// Nakshatra names
+NAKSHATRAS[1];  // "Ashwini"
+NAKSHATRAS[14]; // "Chitra"
+NAKSHATRAS[27]; // "Revati"
+```
 
 ---
 
-## 🛠 Features
+## 🏗️ Multi-Platform Architecture
 
-- **✅ Universal Compatibility** - Node, Browser, iOS, and Android.
-- **✅ Vercel Ready** - Pre-built binaries for serverless environments.
-- **✅ TypeScript First** - Complete type safety for all astrological entities.
-- **✅ Vedic Centric** - Native support for Ayanamsas, Rashis, and Nakshatras.
-- **✅ Unified Interface** - Write your business logic once, run it anywhere.
+| Package | Environment | Technology |
+|---------|-------------|------------|
+| `@af/sweph-node` | Node.js | Native C++ bindings |
+| `@af/sweph-wasm` | Browser | WebAssembly |
+| `@af/sweph-react-native` | Mobile | JSI/Turbo Modules |
+| `@af/sweph-core` | All | Shared TypeScript |
+
+---
+
+## 🐛 Troubleshooting
+
+### Module not found on Vercel
+
+Ensure pre-built binaries are installed:
+```bash
+ls node_modules/@af/sweph/prebuilds/
+# Should show: linux-x64/
+```
+
+### Native module errors
+
+Set `NODE_VERSION=20` in your environment.
+
+---
 
 ## 🤝 Contributing
 
-This is a monorepo managed with `pnpm`.
-
 ```bash
-# Clone
 git clone https://github.com/astro-fusion/af-sweph
-
-# Install
+cd af-sweph
 pnpm install
-
-# Build all packages
 pnpm -r build
-
-# Run tests
 pnpm -r test
 ```
 
@@ -107,5 +242,4 @@ MIT
 
 ## ❤️ Credits
 
-- [Swiss Ephemeris](https://www.astro.com/swisseph/) by Astrodienst AG.
-- [swisseph-v2](https://github.com/nickhealthy/swisseph-v2) for initial Node.js bindings.
+- [Swiss Ephemeris](https://www.astro.com/swisseph/) by Astrodienst AG
