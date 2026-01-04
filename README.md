@@ -37,8 +37,11 @@ async function main() {
   // Create instance (auto-initializes native module)
   const sweph = await createSweph();
 
+  // Define calculation date once for consistency
+  const calculationDate = new Date();
+
   // Calculate planetary positions
-  const planets = await sweph.calculatePlanets(new Date(), {
+  const planets = await sweph.calculatePlanets(calculationDate, {
     ayanamsa: AYANAMSA.LAHIRI,
     timezone: 5.75, // Nepal
   });
@@ -48,7 +51,7 @@ async function main() {
 
   // Calculate Lagna (Ascendant)
   const lagna = await sweph.calculateLagna(
-    new Date(),
+    calculationDate,
     { latitude: 27.7, longitude: 85.3, timezone: 5.75 },
     { ayanamsa: AYANAMSA.LAHIRI }
   );
@@ -56,7 +59,7 @@ async function main() {
   console.log('Ascendant:', lagna.longitude, 'in', sweph.RASHIS[lagna.rasi]);
 
   // Calculate Moon Phase
-  const moonPhase = await sweph.calculateMoonPhase(new Date());
+  const moonPhase = await sweph.calculateMoonPhase(calculationDate);
   console.log('Moon Phase:', moonPhase.phaseName, `(${Math.round(moonPhase.illumination * 100)}%)`);
 }
 
@@ -85,12 +88,12 @@ const sweph = await createSweph({
 ```typescript
 // All 9 Vedic planets
 const planets = await sweph.calculatePlanets(date, {
-  ayanamsa: 1, // Lahiri
+  ayanamsa: AYANAMSA.LAHIRI, // Lahiri
   timezone: 0, // UTC
 });
 
 // Single planet (0=Sun, 1=Moon, 2=Mars, etc.)
-const sun = await sweph.calculatePlanet(0, date, { ayanamsa: 1 });
+const sun = await sweph.calculatePlanet(0, date, { ayanamsa: AYANAMSA.LAHIRI });
 
 // Rise, Set, Transit times
 const riseSet = await sweph.calculateRiseSet(0, date, {
@@ -105,7 +108,7 @@ const riseSet = await sweph.calculateRiseSet(0, date, {
 const lagna = await sweph.calculateLagna(
   date,
   { latitude: 27.7, longitude: 85.3 },
-  { ayanamsa: 1 }
+  { ayanamsa: AYANAMSA.LAHIRI }
 );
 
 console.log(lagna.longitude); // Ascendant in degrees
@@ -116,6 +119,9 @@ console.log(lagna.houses); // Array of 12 house cusps
 #### Sun Calculations
 
 ```typescript
+const date = new Date();
+const location = { latitude: 27.7, longitude: 85.3 };
+
 // Sunrise, Sunset, Solar Noon
 const sunTimes = await sweph.calculateSunTimes(date, location);
 
@@ -129,6 +135,9 @@ const path = await sweph.calculateSunPath(date, location);
 #### Moon Calculations
 
 ```typescript
+const date = new Date();
+const location = { latitude: 27.7, longitude: 85.3 };
+
 // Moon data (position, rise/set, phase)
 const moonData = await sweph.calculateMoonData(date, location);
 

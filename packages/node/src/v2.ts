@@ -122,9 +122,10 @@ export interface SwephInstance {
    * @param planetId - Planet ID
    * @param date - Date for calculation
    * @param location - Geographic location
+   * @param options - Calculation options (timezone)
    * @returns Rise, set, and transit times
    */
-  calculateRiseSet(planetId: number, date: Date, location: Location): Promise<RiseSetTransit>;
+  calculateRiseSet(planetId: number, date: Date, location: Location, options?: PlanetOptions): Promise<RiseSetTransit>;
 
   // === Lagna & Houses ===
   
@@ -275,7 +276,6 @@ export async function createSweph(options?: SwephInitOptions): Promise<SwephInst
         location: opts?.location ? {
           latitude: opts.location.latitude,
           longitude: opts.location.longitude,
-          timezone: opts.location.timezone ?? opts?.timezone ?? 0,
         } : undefined,
       };
       
@@ -292,7 +292,6 @@ export async function createSweph(options?: SwephInitOptions): Promise<SwephInst
         location: opts?.location ? {
           latitude: opts.location.latitude,
           longitude: opts.location.longitude,
-          timezone: opts.location.timezone ?? opts?.timezone ?? 0,
         } : undefined,
       };
       
@@ -302,11 +301,11 @@ export async function createSweph(options?: SwephInitOptions): Promise<SwephInst
       return calculateSinglePlanet(planetId, utcDate, calcOpts);
     },
     
-    async calculateRiseSet(planetId: number, date: Date, location: Location): Promise<RiseSetTransit> {
+    async calculateRiseSet(planetId: number, date: Date, location: Location, opts?: PlanetOptions): Promise<RiseSetTransit> {
       const geoLoc = {
         latitude: location.latitude,
         longitude: location.longitude,
-        timezone: location.timezone ?? 0,
+        timezone: opts?.timezone ?? location.timezone ?? 0,
       };
       const result = calculatePlanetRiseSetTimes(planetId, date, geoLoc);
       return {
