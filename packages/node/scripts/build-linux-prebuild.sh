@@ -69,7 +69,7 @@ docker run --rm \
         npm run install 2>&1 && \
         echo '✅ Build complete!' && \
         ls -la build/Release/ && \
-        file build/Release/swisseph.node
+        (file build/Release/swisseph.node 2>/dev/null || echo 'Note: file command not available')
     "
 
 # Create prebuilds directory if it doesn't exist
