@@ -354,9 +354,11 @@ const sweph = await createSweph({
 
 Ensure pre-built binaries are installed:
 ```bash
-ls node_modules/@af/sweph/prebuilds/
-# Should show: linux-x64/
+ls node_modules/@af/sweph/packages/node/prebuilds/
+# Should show: linux-x64/, darwin-arm64/, etc.
 ```
+
+> **📚 For detailed Next.js and Vercel configuration, see [docs/NEXTJS_VERCEL.md](docs/NEXTJS_VERCEL.md)**
 
 ### Native module errors
 

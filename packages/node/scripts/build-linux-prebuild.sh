@@ -52,8 +52,11 @@ echo "📦 Copying swisseph-v2 source to build directory..."
 cp -r "$SWISSEPH_DIR" "$TEMP_DIR/swisseph-v2"
 
 # Build using Node.js 18 Docker image (matches common Vercel runtime)
-echo "🐳 Starting Docker build..."
+# CRITICAL: Use --platform linux/amd64 to ensure x86_64 binary (Vercel's architecture)
+# Without this flag, Docker on M1/M2 Macs builds ARM64 binaries by default
+echo "🐳 Starting Docker build (platform: linux/amd64)..."
 docker run --rm \
+    --platform linux/amd64 \
     -v "$TEMP_DIR:/build" \
     -w /build/swisseph-v2 \
     node:18-slim \
@@ -61,11 +64,12 @@ docker run --rm \
         echo '📥 Installing build dependencies...' && \
         apt-get update -qq && \
         apt-get install -y -qq python3 make g++ && \
-        echo '🔧 Building native module...' && \
+        echo '🔧 Building native module for x86_64...' && \
         npm install --ignore-scripts && \
         npm run install 2>&1 && \
         echo '✅ Build complete!' && \
-        ls -la build/Release/
+        ls -la build/Release/ && \
+        file build/Release/swisseph.node
     "
 
 # Create prebuilds directory if it doesn't exist
