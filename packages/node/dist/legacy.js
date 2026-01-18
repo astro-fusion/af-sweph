@@ -33,23 +33,30 @@ function createPlanetaryCalculator(_options) {
 function createSwephCalculator() {
     return {
         async calculateAllPlanetPositions(date, timeZoneOffset, ayanamsa = 1) {
+            // Ensure initialization
+            await (0, utils_1.initializeSweph)();
             // Adjust date for timezone
             const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
             return (0, planets_1.calculatePlanets)(utcDate, { ayanamsa });
         },
         async calculateLagna(date, timeZoneOffset, latitude, longitude, ayanamsa = 1) {
+            await (0, utils_1.initializeSweph)();
             return (0, houses_1.calculateLagna)(date, { latitude, longitude, timezone: timeZoneOffset }, { ayanamsa });
         },
         async calculateSunTimes(date, latitude, longitude, timeZoneOffset) {
+            await (0, utils_1.initializeSweph)();
             return (0, sun_1.calculateSunTimes)(date, { latitude, longitude, timezone: timeZoneOffset });
         },
         async calculateMoonTimes(date, latitude, longitude, timeZoneOffset) {
+            await (0, utils_1.initializeSweph)();
             return (0, moon_1.calculateMoonData)(date, { latitude, longitude, timezone: timeZoneOffset });
         },
         async calculatePlanetRiseSetTimes(planetId, date, latitude, longitude, timeZoneOffset) {
+            await (0, utils_1.initializeSweph)();
             return (0, planets_1.calculatePlanetRiseSetTimes)(planetId, date, { latitude, longitude, timezone: timeZoneOffset });
         },
         async calculateMoonPosition(date, latitude, longitude, timeZoneOffset) {
+            await (0, utils_1.initializeSweph)();
             // Calculate Moon (id 1) using implementation that supports Az/Alt
             const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
             const result = await (0, planets_1.calculateSinglePlanet)(1, utcDate, {
@@ -76,6 +83,7 @@ function createSwephCalculator() {
             return (0, moon_1.calculateNextMoonPhases)(date);
         },
         async calculateDailySunPath(date, latitude, longitude, timeZoneOffset) {
+            await (0, utils_1.initializeSweph)();
             return (0, sun_1.calculateSunPath)(date, { latitude, longitude, timezone: timeZoneOffset });
         }
     };

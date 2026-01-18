@@ -240,6 +240,11 @@ export default async function handler(req, res) {
 }
 ```
 
+> [!IMPORTANT]
+> **Serverless Cold Starts**: In local development, the process stays alive. In Serverless (Vercel/Lambda), every request might be a new process. 
+> The `createSweph()` function above **automatically awaits initialization**. 
+> However, if you use legacy functions or internal helpers, you **MUST** call `await initializeSweph()` before any calculations.
+
 #### 3. Bundle Size Optimization
 ```javascript
 // next.config.js
@@ -386,20 +391,30 @@ Use dynamic imports for better tree shaking:
 const { createSweph } = await import('@af/sweph');
 ```
 
-### Building additional platform binaries
+### Building Pre-built Binaries
 
-For production deployments to less common platforms:
+For production deployments, you can build native binaries for multiple Node.js versions:
 
 ```bash
-# Build linux-arm64 (AWS Lambda Graviton)
-pnpm run prebuild:linux-arm64
+cd packages/node
 
-# Build Windows x64 (requires Windows environment)
-pnpm run prebuild:win32
+# Build ALL versions (Node 18/20/22) for ALL platforms (requires Docker)
+pnpm prebuild:all
 
-# Build all available platforms
-pnpm run build:all-prebuilds
+# Build single platform
+pnpm prebuild:linux          # Linux x64
+pnpm prebuild:linux-arm64    # Linux ARM64 (Vercel/Lambda Graviton)
+
+# Copy macOS binary from local build
+pnpm copy:darwin-arm64       # macOS Apple Silicon
+pnpm copy:darwin-x64         # macOS Intel
 ```
+
+The `prebuild:all` script creates binaries for:
+- **Node.js versions**: 18, 20, 22
+- **Platforms**: linux-x64, linux-arm64, darwin-arm64, darwin-x64
+
+> **💡 Tip**: Run the GitHub Actions workflow `Build Prebuilds` to automatically generate all binaries.
 
 ## 📁 Project Structure & Templates
 

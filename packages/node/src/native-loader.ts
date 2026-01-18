@@ -84,16 +84,47 @@ function isSupportedPlatform(key: string): key is SupportedPlatform {
 }
 
 /**
+ * Get the Node.js major version
+ */
+function getNodeMajorVersion(): string {
+  const version = process.version; // e.g., "v22.1.0"
+  const major = version.split('.')[0].replace('v', '');
+  return major;
+}
+
+/**
  * Get paths to search for pre-built binaries
+ * Searches multiple locations for maximum compatibility with different environments
  */
 function getPrebuildPaths(platformKey: string): string[] {
   const paths: string[] = [];
+  const nodeMajor = getNodeMajorVersion();
 
-  // Standard prebuild location (works from dist/ and src/)
+  // 1. Version-specific prebuild (highest priority - exact Node.js version match)
+  paths.push(path.resolve(__dirname, '..', 'prebuilds', platformKey, `node${nodeMajor}`, 'swisseph.node'));
+
+  // 2. Standard prebuild location (fallback to default/latest)
   paths.push(path.resolve(__dirname, '..', 'prebuilds', platformKey, 'swisseph.node'));
 
-  // Alternative: node_modules location for installed packages
+  // 3. Monorepo packages/node location (for git-installed packages)
+  paths.push(path.resolve(__dirname, '..', '..', 'packages', 'node', 'prebuilds', platformKey, `node${nodeMajor}`, 'swisseph.node'));
+  paths.push(path.resolve(__dirname, '..', '..', 'packages', 'node', 'prebuilds', platformKey, 'swisseph.node'));
+
+  // 4. Vercel /var/task location
+  if (process.env.VERCEL) {
+    paths.push(`/var/task/node_modules/@af/sweph/packages/node/prebuilds/${platformKey}/node${nodeMajor}/swisseph.node`);
+    paths.push(`/var/task/node_modules/@af/sweph/packages/node/prebuilds/${platformKey}/swisseph.node`);
+    paths.push(`/var/task/node_modules/@af/sweph/prebuilds/${platformKey}/swisseph.node`);
+    paths.push(`/var/task/apps/web/lib/sweph-prebuilds/${platformKey}/swisseph.node`);
+  }
+
+  // 5. cwd-based locations (for various install methods)
+  paths.push(path.resolve(process.cwd(), 'node_modules', '@af', 'sweph', 'prebuilds', platformKey, `node${nodeMajor}`, 'swisseph.node'));
   paths.push(path.resolve(process.cwd(), 'node_modules', '@af', 'sweph', 'prebuilds', platformKey, 'swisseph.node'));
+  paths.push(path.resolve(process.cwd(), 'node_modules', '@af', 'sweph', 'packages', 'node', 'prebuilds', platformKey, 'swisseph.node'));
+
+  // 6. App-specific prebuild location (for Vercel tracing)
+  paths.push(path.resolve(process.cwd(), 'lib', 'sweph-prebuilds', platformKey, 'swisseph.node'));
 
   return paths;
 }

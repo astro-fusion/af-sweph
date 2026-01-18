@@ -55,7 +55,7 @@ echo "🐳 Starting Docker build for ARM64..."
 docker run --rm --platform linux/arm64 \
     -v "$TEMP_DIR:/build" \
     -w /build/swisseph-v2 \
-    node:18-slim \
+    node:22-slim \
     bash -c "
         echo '📥 Installing build dependencies...' && \
         apt-get update -qq && \

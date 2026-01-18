@@ -159,6 +159,8 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       timeZoneOffset: number,
       ayanamsa: number = 1
     ): Promise<Planet[]> {
+      // Ensure initialization
+      await initSweph();
       // Adjust date for timezone
       const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
       return calculatePlanets(utcDate, { ayanamsa });
@@ -171,6 +173,7 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       longitude: number,
       ayanamsa: number = 1
     ): Promise<LagnaInfo> {
+      await initSweph();
       return calculateLagna(date, { latitude, longitude, timezone: timeZoneOffset }, { ayanamsa });
     },
 
@@ -180,6 +183,7 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       longitude: number,
       timeZoneOffset: number
     ): Promise<SunTimes> {
+      await initSweph();
       return calculateSunTimes(date, { latitude, longitude, timezone: timeZoneOffset });
     },
 
@@ -189,6 +193,7 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       longitude: number,
       timeZoneOffset: number
     ): Promise<MoonData> {
+      await initSweph();
       return calculateMoonData(date, { latitude, longitude, timezone: timeZoneOffset });
     },
 
@@ -199,6 +204,7 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       longitude: number,
       timeZoneOffset: number
     ): Promise<{ rise: Date | null; set: Date | null }> {
+      await initSweph();
       return calculatePlanetRiseSetTimes(planetId, date, { latitude, longitude, timezone: timeZoneOffset });
     },
 
@@ -208,6 +214,7 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       longitude: number,
       timeZoneOffset: number
     ): Promise<Planet> {
+      await initSweph();
       // Calculate Moon (id 1) using implementation that supports Az/Alt
       const utcDate = new Date(date.getTime() - timeZoneOffset * 60 * 60 * 1000);
       const result = await calculateSinglePlanet(1, utcDate, { 
@@ -256,6 +263,7 @@ export function createSwephCalculator(): PlanetaryCalculationProvider {
       longitude: number,
       timeZoneOffset: number
     ): Promise<{ time: Date; azimuth: number; altitude: number }[]> {
+        await initSweph();
         return calculateSunPath(date, { latitude, longitude, timezone: timeZoneOffset });
     }
   };

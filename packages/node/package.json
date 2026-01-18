@@ -27,7 +27,7 @@
         "prebuild:win32": "bash scripts/build-win32-prebuild.sh",
         "copy:darwin-arm64": "mkdir -p prebuilds/darwin-arm64 && cp ../../node_modules/swisseph-v2/build/Release/swisseph.node prebuilds/darwin-arm64/",
         "copy:darwin-x64": "mkdir -p prebuilds/darwin-x64 && cp ../../node_modules/swisseph-v2/build/Release/swisseph.node prebuilds/darwin-x64/",
-        "build:all-prebuilds": "pnpm run prebuild:linux && pnpm run prebuild:linux-arm64 && echo 'Note: Windows builds require Windows environment'",
+        "prebuild:all": "bash scripts/build-all-prebuilds.sh",
         "validate-dist": "node -e \"require('./dist/index.js'); console.log('✅ Dist files are valid');\"",
         "check-platform": "node -e \"const {getPlatformInfo}=require('./dist/native-loader');console.log(JSON.stringify(getPlatformInfo(),null,2));\""
     },
