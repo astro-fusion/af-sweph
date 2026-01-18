@@ -26,6 +26,11 @@
       "types": "./packages/core/dist/index.d.ts",
       "require": "./packages/core/dist/index.js",
       "import": "./packages/core/dist/index.js"
+    },
+    "./lite": {
+      "types": "./packages/lite/dist/index.d.ts",
+      "require": "./packages/lite/dist/index.js",
+      "import": "./packages/lite/dist/index.mjs"
     }
   },
   "scripts": {

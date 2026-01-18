@@ -27,6 +27,9 @@ export { calculateMoonData, calculateMoonPhase, calculateNextMoonPhases, } from 
 export { getAyanamsa, setEphemerisPath, getJulianDay, dateToJulian, julianToDate, getNativeModule, initializeSweph, } from './utils';
 export { getPlatformInfo, hasPrebuilds, getSupportedPlatforms, } from './native-loader';
 export { PLANETS, AYANAMSA, HOUSE_SYSTEMS, RASHIS, NAKSHATRAS, VEDIC_PLANET_ORDER, } from './constants';
+export { AstroCalculator, type AstroCalculatorOptions, } from './calculator';
+export { CalculationTier, EngineFeatures, FeatureNotSupportedError, } from '@af/sweph-core';
+export type { TieredResult, TierMetadata, TieredCalculationOptions, ICalculationEngine, } from '@af/sweph-core';
 export type { Planet, GeoLocation, SunTimes, MoonData, MoonPhase, LagnaInfo, NextMoonPhases, CalculationOptions, } from './types';
 export { PlanetId, AyanamsaType, HouseSystem, } from './types';
 export { 

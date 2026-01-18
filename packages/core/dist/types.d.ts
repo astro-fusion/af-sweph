@@ -222,4 +222,144 @@ export declare enum HouseSystem {
     KRUSINSKI = "U",
     SRIPATI = "S"
 }
+/**
+ * Calculation engine tiers (lowest = fastest, highest = most accurate)
+ *
+ * The system defaults to the FAST tier and only escalates when:
+ * 1. A feature is not supported (e.g., House Systems in Lite engine)
+ * 2. The user explicitly requests a higher tier
+ */
+export declare enum CalculationTier {
+    /** In-memory cache hit - instant response */
+    CACHE = 0,
+    /** Pure JS (astronomy-engine) - ~50ms, good for planets/sun/moon */
+    FAST = 1,
+    /** WebAssembly SWEPH - ~100ms, supports house systems */
+    WASM = 2,
+    /** Native C++ SWEPH - ~200ms, sub-arcsecond accuracy */
+    NATIVE = 3
+}
+/**
+ * Metadata about how a calculation was performed
+ */
+export interface TierMetadata {
+    /** Which tier was used for this calculation */
+    tier: CalculationTier;
+    /** Human-readable tier name */
+    tierName: 'cache' | 'lite' | 'wasm' | 'native';
+    /** Accuracy classification */
+    accuracy: 'approximate' | 'high' | 'exact';
+    /** Time taken for the calculation in milliseconds */
+    latencyMs: number;
+    /** Whether this result came from cache */
+    cached: boolean;
+    /** If escalation occurred, the reason */
+    escalationReason?: string;
+}
+/**
+ * Extended calculation result with tier information
+ */
+export interface TieredResult<T> {
+    /** The calculation result data */
+    data: T;
+    /** Metadata about the calculation */
+    meta: TierMetadata;
+}
+/**
+ * Options for tiered calculations
+ */
+export interface TieredCalculationOptions extends CalculationOptions {
+    /** Minimum acceptable tier (default: FAST) */
+    minTier?: CalculationTier;
+    /** Maximum tier to attempt (default: NATIVE) */
+    maxTier?: CalculationTier;
+    /** Force specific tier (bypasses auto-selection) */
+    forceTier?: CalculationTier;
+    /** Enable streaming updates - callback receives progressively accurate results */
+    streaming?: boolean;
+}
+/**
+ * Error thrown when a feature is not supported by an engine
+ */
+export declare class FeatureNotSupportedError extends Error {
+    readonly feature: string;
+    readonly tier: CalculationTier;
+    constructor(feature: string, tier: CalculationTier);
+}
+/**
+ * Lagna (Ascendant) information
+ */
+export interface LagnaInfo {
+    /** Longitude of the ascendant in degrees */
+    longitude: number;
+    /** Rashi (sign) number 1-12 */
+    rasi: number;
+    /** Degree within the rashi */
+    rasiDegree: number;
+    /** Nakshatra number 1-27 */
+    nakshatra?: number;
+    /** House cusps (12 values) */
+    houses?: number[];
+}
+/**
+ * Abstract interface for all calculation engines.
+ * Implemented by: LiteEngine, WasmEngine, NativeEngine
+ *
+ * Each engine declares which features it supports. The router
+ * automatically escalates to a higher tier when a feature is missing.
+ */
+export interface ICalculationEngine {
+    /** Which tier this engine represents */
+    readonly tier: CalculationTier;
+    /** Human-readable engine name */
+    readonly name: string;
+    /** List of supported features */
+    readonly supportedFeatures: Set<string>;
+    /** Check if this engine is available in current environment */
+    isAvailable(): Promise<boolean>;
+    /** Initialize the engine (load WASM, native module, etc.) */
+    initialize(): Promise<void>;
+    /** Dispose of resources */
+    dispose(): void;
+    /**
+     * Calculate positions for all Vedic planets
+     * Supported by: FAST, WASM, NATIVE
+     */
+    calculatePlanets(date: Date, options?: CalculationOptions): Promise<Planet[]>;
+    /**
+     * Calculate Lagna (Ascendant) and house cusps
+     * Supported by: WASM, NATIVE (NOT supported by FAST/Lite)
+     */
+    calculateLagna(date: Date, location: GeoLocation, options?: CalculationOptions): Promise<LagnaInfo>;
+    /**
+     * Calculate sun times (sunrise, sunset, solar noon)
+     * Supported by: FAST, WASM, NATIVE
+     */
+    calculateSunTimes(date: Date, location: GeoLocation): Promise<SunTimes>;
+    /**
+     * Calculate moon phase
+     * Supported by: FAST, WASM, NATIVE
+     */
+    calculateMoonPhase(date: Date): Promise<MoonPhase>;
+    /**
+     * Get ayanamsa value for sidereal calculations
+     * Supported by: FAST (approximated), WASM, NATIVE
+     */
+    getAyanamsa(date: Date, type?: number): number;
+}
+/**
+ * Feature identifiers for capability checking
+ */
+export declare const EngineFeatures: {
+    readonly PLANETS: "planets";
+    readonly LAGNA: "lagna";
+    readonly HOUSES: "houses";
+    readonly SUN_TIMES: "sun_times";
+    readonly MOON_PHASE: "moon_phase";
+    readonly MOON_TIMES: "moon_times";
+    readonly PLANET_RISE_SET: "planet_rise_set";
+    readonly AYANAMSA: "ayanamsa";
+    readonly AYANAMSA_EXACT: "ayanamsa_exact";
+};
+export type EngineFeature = typeof EngineFeatures[keyof typeof EngineFeatures];
 //# sourceMappingURL=types.d.ts.map

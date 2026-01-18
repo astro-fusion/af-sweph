@@ -99,6 +99,29 @@ export {
 } from './constants';
 
 // =============================================================================
+// Tiered Calculation API (New)
+// =============================================================================
+
+export {
+  AstroCalculator,
+  type AstroCalculatorOptions,
+} from './calculator';
+
+// Re-export tiered types from core
+export {
+  CalculationTier,
+  EngineFeatures,
+  FeatureNotSupportedError,
+} from '@af/sweph-core';
+
+export type {
+  TieredResult,
+  TierMetadata,
+  TieredCalculationOptions,
+  ICalculationEngine,
+} from '@af/sweph-core';
+
+// =============================================================================
 // Types
 // =============================================================================
 

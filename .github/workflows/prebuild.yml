@@ -1,0 +1,141 @@
+name: Build Prebuilds
+
+on:
+  workflow_dispatch:
+    inputs:
+      node_versions:
+        description: 'Node.js versions to build (comma-separated: 18,20,22)'
+        required: false
+        default: '18,20,22'
+      platforms:
+        description: 'Platforms to build (comma-separated: linux-x64,linux-arm64)'
+        required: false
+        default: 'linux-x64,linux-arm64'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/node/src/native-loader.ts'
+      - 'packages/node/scripts/build-*.sh'
+
+jobs:
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.2
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build native module
+        run: |
+          cd packages/node/node_modules/swisseph-v2 || cd node_modules/swisseph-v2
+          npm run install
+
+      - name: Copy prebuild
+        run: |
+          mkdir -p packages/node/prebuilds/linux-x64/node${{ matrix.node }}
+          cp node_modules/swisseph-v2/build/Release/swisseph.node packages/node/prebuilds/linux-x64/node${{ matrix.node }}/
+          # Also copy to default location for Node 22
+          if [ "${{ matrix.node }}" = "22" ]; then
+            cp node_modules/swisseph-v2/build/Release/swisseph.node packages/node/prebuilds/linux-x64/
+          fi
+
+      - name: Upload prebuild artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-linux-x64-node${{ matrix.node }}
+          path: packages/node/prebuilds/linux-x64/
+          retention-days: 7
+
+  build-linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.2
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build native module
+        run: |
+          cd packages/node/node_modules/swisseph-v2 || cd node_modules/swisseph-v2
+          npm run install
+
+      - name: Copy prebuild
+        run: |
+          mkdir -p packages/node/prebuilds/linux-arm64/node${{ matrix.node }}
+          cp node_modules/swisseph-v2/build/Release/swisseph.node packages/node/prebuilds/linux-arm64/node${{ matrix.node }}/
+          # Also copy to default location for Node 22
+          if [ "${{ matrix.node }}" = "22" ]; then
+            cp node_modules/swisseph-v2/build/Release/swisseph.node packages/node/prebuilds/linux-arm64/
+          fi
+
+      - name: Upload prebuild artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuild-linux-arm64-node${{ matrix.node }}
+          path: packages/node/prebuilds/linux-arm64/
+          retention-days: 7
+
+  commit-prebuilds:
+    needs: [build-linux-x64, build-linux-arm64]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-prebuilds
+
+      - name: Merge prebuilds
+        run: |
+          mkdir -p packages/node/prebuilds/linux-x64
+          mkdir -p packages/node/prebuilds/linux-arm64
+          
+          # Copy linux-x64 prebuilds
+          for dir in downloaded-prebuilds/prebuild-linux-x64-*; do
+            cp -r $dir/* packages/node/prebuilds/linux-x64/ 2>/dev/null || true
+          done
+          
+          # Copy linux-arm64 prebuilds
+          for dir in downloaded-prebuilds/prebuild-linux-arm64-*; do
+            cp -r $dir/* packages/node/prebuilds/linux-arm64/ 2>/dev/null || true
+          done
+          
+          echo "Prebuilds structure:"
+          find packages/node/prebuilds -name "*.node" -exec ls -lh {} \;
+
+      - name: Commit prebuilds
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add packages/node/prebuilds/
+          git diff --staged --quiet || git commit -m "chore: rebuild prebuilds for Node 18/20/22 [skip ci]"
+          git push

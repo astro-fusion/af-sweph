@@ -6,7 +6,7 @@
  * Used by @af/sweph, @af/sweph-wasm, and @af/sweph-react-native.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HouseSystem = exports.AyanamsaType = exports.PlanetId = void 0;
+exports.EngineFeatures = exports.FeatureNotSupportedError = exports.CalculationTier = exports.HouseSystem = exports.AyanamsaType = exports.PlanetId = void 0;
 // ============================================================================
 // Enums and Planet IDs
 // ============================================================================
@@ -77,4 +77,53 @@ var HouseSystem;
     HouseSystem["KRUSINSKI"] = "U";
     HouseSystem["SRIPATI"] = "S";
 })(HouseSystem || (exports.HouseSystem = HouseSystem = {}));
+// ============================================================================
+// Tiered Calculation System
+// ============================================================================
+/**
+ * Calculation engine tiers (lowest = fastest, highest = most accurate)
+ *
+ * The system defaults to the FAST tier and only escalates when:
+ * 1. A feature is not supported (e.g., House Systems in Lite engine)
+ * 2. The user explicitly requests a higher tier
+ */
+var CalculationTier;
+(function (CalculationTier) {
+    /** In-memory cache hit - instant response */
+    CalculationTier[CalculationTier["CACHE"] = 0] = "CACHE";
+    /** Pure JS (astronomy-engine) - ~50ms, good for planets/sun/moon */
+    CalculationTier[CalculationTier["FAST"] = 1] = "FAST";
+    /** WebAssembly SWEPH - ~100ms, supports house systems */
+    CalculationTier[CalculationTier["WASM"] = 2] = "WASM";
+    /** Native C++ SWEPH - ~200ms, sub-arcsecond accuracy */
+    CalculationTier[CalculationTier["NATIVE"] = 3] = "NATIVE";
+})(CalculationTier || (exports.CalculationTier = CalculationTier = {}));
+/**
+ * Error thrown when a feature is not supported by an engine
+ */
+class FeatureNotSupportedError extends Error {
+    feature;
+    tier;
+    constructor(feature, tier) {
+        super(`Feature '${feature}' is not supported by tier ${CalculationTier[tier]}`);
+        this.feature = feature;
+        this.tier = tier;
+        this.name = 'FeatureNotSupportedError';
+    }
+}
+exports.FeatureNotSupportedError = FeatureNotSupportedError;
+/**
+ * Feature identifiers for capability checking
+ */
+exports.EngineFeatures = {
+    PLANETS: 'planets',
+    LAGNA: 'lagna',
+    HOUSES: 'houses',
+    SUN_TIMES: 'sun_times',
+    MOON_PHASE: 'moon_phase',
+    MOON_TIMES: 'moon_times',
+    PLANET_RISE_SET: 'planet_rise_set',
+    AYANAMSA: 'ayanamsa',
+    AYANAMSA_EXACT: 'ayanamsa_exact',
+};
 //# sourceMappingURL=types.js.map

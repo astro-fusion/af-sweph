@@ -21,7 +21,7 @@
  * ```
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateKundaliPageData = exports.registerAdapter = exports.createNodeAdapter = exports.createSwephAdapter = exports.createPlanetaryCalculator = exports.createSwephCalculator = exports.HouseSystem = exports.AyanamsaType = exports.PlanetId = exports.VEDIC_PLANET_ORDER = exports.NAKSHATRAS = exports.RASHIS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.PLANETS = exports.getSupportedPlatforms = exports.hasPrebuilds = exports.getPlatformInfo = exports.initializeSweph = exports.getNativeModule = exports.julianToDate = exports.dateToJulian = exports.getJulianDay = exports.setEphemerisPath = exports.getAyanamsa = exports.calculateNextMoonPhases = exports.calculateMoonPhase = exports.calculateMoonData = exports.calculateSunPath = exports.calculateSolarNoon = exports.calculateSunTimes = exports.calculateHouses = exports.calculateLagna = exports.calculatePlanetRiseSetTimes = exports.calculateSinglePlanet = exports.calculatePlanets = exports.createSweph = void 0;
+exports.calculateKundaliPageData = exports.registerAdapter = exports.createNodeAdapter = exports.createSwephAdapter = exports.createPlanetaryCalculator = exports.createSwephCalculator = exports.HouseSystem = exports.AyanamsaType = exports.PlanetId = exports.FeatureNotSupportedError = exports.EngineFeatures = exports.CalculationTier = exports.AstroCalculator = exports.VEDIC_PLANET_ORDER = exports.NAKSHATRAS = exports.RASHIS = exports.HOUSE_SYSTEMS = exports.AYANAMSA = exports.PLANETS = exports.getSupportedPlatforms = exports.hasPrebuilds = exports.getPlatformInfo = exports.initializeSweph = exports.getNativeModule = exports.julianToDate = exports.dateToJulian = exports.getJulianDay = exports.setEphemerisPath = exports.getAyanamsa = exports.calculateNextMoonPhases = exports.calculateMoonPhase = exports.calculateMoonData = exports.calculateSunPath = exports.calculateSolarNoon = exports.calculateSunTimes = exports.calculateHouses = exports.calculateLagna = exports.calculatePlanetRiseSetTimes = exports.calculateSinglePlanet = exports.calculatePlanets = exports.createSweph = void 0;
 // =============================================================================
 // v2 API (Recommended)
 // =============================================================================
@@ -73,6 +73,16 @@ Object.defineProperty(exports, "HOUSE_SYSTEMS", { enumerable: true, get: functio
 Object.defineProperty(exports, "RASHIS", { enumerable: true, get: function () { return constants_1.RASHIS; } });
 Object.defineProperty(exports, "NAKSHATRAS", { enumerable: true, get: function () { return constants_1.NAKSHATRAS; } });
 Object.defineProperty(exports, "VEDIC_PLANET_ORDER", { enumerable: true, get: function () { return constants_1.VEDIC_PLANET_ORDER; } });
+// =============================================================================
+// Tiered Calculation API (New)
+// =============================================================================
+var calculator_1 = require("./calculator");
+Object.defineProperty(exports, "AstroCalculator", { enumerable: true, get: function () { return calculator_1.AstroCalculator; } });
+// Re-export tiered types from core
+var sweph_core_1 = require("@af/sweph-core");
+Object.defineProperty(exports, "CalculationTier", { enumerable: true, get: function () { return sweph_core_1.CalculationTier; } });
+Object.defineProperty(exports, "EngineFeatures", { enumerable: true, get: function () { return sweph_core_1.EngineFeatures; } });
+Object.defineProperty(exports, "FeatureNotSupportedError", { enumerable: true, get: function () { return sweph_core_1.FeatureNotSupportedError; } });
 var types_1 = require("./types");
 Object.defineProperty(exports, "PlanetId", { enumerable: true, get: function () { return types_1.PlanetId; } });
 Object.defineProperty(exports, "AyanamsaType", { enumerable: true, get: function () { return types_1.AyanamsaType; } });

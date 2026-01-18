@@ -5,7 +5,7 @@
  * This package has no native dependencies and can be used in any JavaScript environment.
  */
 
-// Types and interfaces
+// Types and interfaces (includes tiered calculation system)
 export * from './types';
 
 // Constants
@@ -13,3 +13,4 @@ export * from './constants';
 
 // Pure utility functions
 export * from './utils';
+
