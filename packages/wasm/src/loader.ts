@@ -15,9 +15,9 @@ let loadPromise: Promise<WasmAdapter> | null = null;
  * Options for loading the WASM module
  */
 export interface WasmLoadOptions {
-    /** Custom URL for the WASM file */
+    /** Custom URL for the WASM file (can be a CDN URL) */
     wasmUrl?: string;
-    /** Custom URL for the JS glue code */
+    /** Custom URL for the JS glue code (optional) */
     jsUrl?: string;
 }
 
@@ -46,6 +46,7 @@ export async function loadWasmModule(options?: WasmLoadOptions): Promise<WasmAda
 
             const moduleConfig: any = {
                 locateFile: (path: string, scriptDirectory: string) => {
+                    // Use custom WASM URL if provided (e.g. from CDN)
                     if (path.endsWith('.wasm') && options?.wasmUrl) {
                         return options.wasmUrl;
                     }

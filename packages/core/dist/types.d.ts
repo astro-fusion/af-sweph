@@ -33,6 +33,16 @@ export interface AzAltResult {
     error?: string;
 }
 /**
+ * Result of swe_houses calculation
+ */
+export interface HouseResult {
+    /** 13 doubles: cusp 1-12 (index 1-12), index 0 is always 0 */
+    cusp: number[];
+    /** 8 doubles: ascmc: 0=Asc, 1=MC, 2=ARMC, 3=Vertex, etc */
+    ascmc: number[];
+    error?: string;
+}
+/**
  * Geographic location for astronomical calculations
  */
 export interface GeoLocation {
@@ -133,6 +143,9 @@ export interface ISwephAdapter {
         error: string;
     };
     swe_azalt(tjd_ut: number, calc_flag: number, geopos: number[], atpress: number, attemp: number, xin: number[]): AzAltResult;
+    swe_houses(tjd_ut: number, geolat: number, geolon: number, hsys: number): HouseResult | {
+        error: string;
+    };
     swe_version?(): string;
     SEFLG_SWIEPH?: number;
     SEFLG_SPEED?: number;
@@ -150,6 +163,7 @@ export interface ISwephInstance {
     /** Current platform identifier */
     readonly platform: 'node' | 'browser' | 'react-native';
     calculatePlanets(date: Date, options?: CalculationOptions): Planet[];
+    calculateLagna(date: Date, location: GeoLocation, options?: CalculationOptions): LagnaInfo;
     calculateSunTimes(date: Date, location: GeoLocation): SunTimes;
     calculateMoonData(date: Date, location: GeoLocation): MoonData;
     calculateMoonPhase(date: Date): MoonPhase;

@@ -69,6 +69,7 @@ async function loadWasmModule(options) {
             const createSwephModule = (await Promise.resolve().then(() => __importStar(require('../wasm/swisseph.js')))).default;
             const moduleConfig = {
                 locateFile: (path, scriptDirectory) => {
+                    // Use custom WASM URL if provided (e.g. from CDN)
                     if (path.endsWith('.wasm') && options?.wasmUrl) {
                         return options.wasmUrl;
                     }

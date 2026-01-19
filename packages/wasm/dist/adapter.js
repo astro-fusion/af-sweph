@@ -130,8 +130,32 @@ class WasmAdapter {
         }
         finally {
             this.module._free(xazPtr);
-            this.module._free(geoposPtr);
             this.module._free(xinPtr);
+        }
+    }
+    swe_houses(tjd_ut, geolat, geolon, hsys) {
+        const cuspPtr = this.module._malloc(13 * 8); // 13 doubles
+        const ascmcPtr = this.module._malloc(10 * 8); // 10 doubles
+        try {
+            const ret = this.module._swe_houses(tjd_ut, geolat, geolon, hsys, cuspPtr, ascmcPtr);
+            if (ret < 0) {
+                // Error handling via serr? swe_houses returns < 0 on error but doesn't take serrPtr in standard API
+                // Usually relies on global error buffer or return value
+                return { error: `swe_houses failed with code ${ret}` };
+            }
+            const cusp = [];
+            for (let i = 0; i < 13; i++) {
+                cusp.push(this.module.getValue(cuspPtr + i * 8, 'double'));
+            }
+            const ascmc = [];
+            for (let i = 0; i < 10; i++) {
+                ascmc.push(this.module.getValue(ascmcPtr + i * 8, 'double'));
+            }
+            return { cusp, ascmc };
+        }
+        finally {
+            this.module._free(cuspPtr);
+            this.module._free(ascmcPtr);
         }
     }
     swe_version() {

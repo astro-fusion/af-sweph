@@ -12,6 +12,20 @@ The ultimate Swiss Ephemeris library for Vedic Astrology, supporting Node.js, Br
 - **✅ Vedic Astrology** - Ayanamsa, Rashis, Nakshatras built-in
 - **✅ Multi-Platform** - Node.js, Browser (WASM), React Native
 - **✅ Vercel Ready** - Pre-built binaries for serverless
+15: 
+16: ## ⚠️ Vercel / Serverless Considerations
+17: 
+18: Deploying native modules to Serverless environments involves specific challenges:
+19: 
+20: 1.  **Core Problem**: Compatibility between build environment (CI) and runtime environment (Lambda/Vercel).
+21: 2.  **Common "Sloppy Code" Pitfalls**:
+22:     *   Relying on `__dirname` which changes in bundled environments.
+23:     *   Assuming `npm install` binaries persist (they don't).
+24:     *   Ignoring local "Module not found" errors.
+25: 
+26: > [!IMPORTANT]
+27: > For a comprehensive guide on fixing deployment crashes, bundle size limits, and proper configuration, please read our [Next.js & Vercel Deployment Guide](docs/NEXTJS_VERCEL.md).
+
 
 ## 🚀 Quick Start
 

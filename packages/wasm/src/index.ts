@@ -17,6 +17,7 @@ export * from '@af/sweph-core';
 
 // Export WASM-specific modules
 export { WasmAdapter } from './adapter';
+export { WasmEngine } from './engine';
 export { loadWasmModule, getAdapter, isLoaded, isWasmSupported } from './loader';
 export type { WasmLoadOptions } from './loader';
 
@@ -30,7 +31,9 @@ import type {
     MoonData,
     MoonPhase,
     PlanetRiseSetTimes,
-    GeoLocation
+    GeoLocation,
+    LagnaInfo,
+    HouseResult
 } from '@af/sweph-core';
 import {
     PLANETS,
@@ -164,6 +167,40 @@ export async function createSweph(options?: WasmLoadOptions): Promise<ISwephInst
                 sunset: null,
                 solarNoon: new Date(),
                 dayLength: 12,
+            };
+        },
+
+        calculateLagna(date: Date, location: GeoLocation, options?: CalculationOptions): LagnaInfo {
+            const jd = dateToJulian(date);
+            const ayanamsa = options?.ayanamsa ?? 1;
+            const houseSystem = options?.houseSystem ? options.houseSystem.charCodeAt(0) : 'P'.charCodeAt(0);
+
+            // Set sidereal mode
+            adapter.swe_set_sid_mode(ayanamsa, 0, 0);
+
+            const result = adapter.swe_houses(jd, location.latitude, location.longitude, houseSystem);
+
+            if ('error' in result) {
+                throw new Error(result.error);
+            }
+
+            const ayanamsaVal = adapter.swe_get_ayanamsa(jd);
+            
+            // Apply ayanamsa correction (Tropical -> Sidereal)
+            // Note: swe_houses returns tropical if sidereal mode not set, 
+            // but even with sidereal mode, sometimes we need manual correction depending on flags.
+            // For safety, we treat result as tropical and subtract ayanamsa as in node implementation.
+            // Wait, node implementation does explicit subtraction: 
+            // ascendant = normalizeLongitude(ascendant - ayanamsaValue);
+            
+            const ascendant = normalizeLongitude(result.ascmc[0] - ayanamsaVal);
+            const houses = result.cusp.slice(1, 13).map((c: number) => normalizeLongitude(c - ayanamsaVal));
+
+            return {
+                longitude: ascendant,
+                rasi: getRashi(ascendant),
+                rasiDegree: getRashiDegree(ascendant),
+                houses,
             };
         },
 

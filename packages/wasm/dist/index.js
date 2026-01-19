@@ -27,7 +27,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isWasmSupported = exports.isLoaded = exports.getAdapter = exports.loadWasmModule = exports.WasmAdapter = void 0;
+exports.isWasmSupported = exports.isLoaded = exports.getAdapter = exports.loadWasmModule = exports.WasmEngine = exports.WasmAdapter = void 0;
 exports.createSweph = createSweph;
 exports.initializeSweph = initializeSweph;
 // Re-export core types and utilities
@@ -35,6 +35,8 @@ __exportStar(require("@af/sweph-core"), exports);
 // Export WASM-specific modules
 var adapter_1 = require("./adapter");
 Object.defineProperty(exports, "WasmAdapter", { enumerable: true, get: function () { return adapter_1.WasmAdapter; } });
+var engine_1 = require("./engine");
+Object.defineProperty(exports, "WasmEngine", { enumerable: true, get: function () { return engine_1.WasmEngine; } });
 var loader_1 = require("./loader");
 Object.defineProperty(exports, "loadWasmModule", { enumerable: true, get: function () { return loader_1.loadWasmModule; } });
 Object.defineProperty(exports, "getAdapter", { enumerable: true, get: function () { return loader_1.getAdapter; } });
@@ -139,6 +141,32 @@ async function createSweph(options) {
                 sunset: null,
                 solarNoon: new Date(),
                 dayLength: 12,
+            };
+        },
+        calculateLagna(date, location, options) {
+            const jd = dateToJulian(date);
+            const ayanamsa = options?.ayanamsa ?? 1;
+            const houseSystem = options?.houseSystem ? options.houseSystem.charCodeAt(0) : 'P'.charCodeAt(0);
+            // Set sidereal mode
+            adapter.swe_set_sid_mode(ayanamsa, 0, 0);
+            const result = adapter.swe_houses(jd, location.latitude, location.longitude, houseSystem);
+            if ('error' in result) {
+                throw new Error(result.error);
+            }
+            const ayanamsaVal = adapter.swe_get_ayanamsa(jd);
+            // Apply ayanamsa correction (Tropical -> Sidereal)
+            // Note: swe_houses returns tropical if sidereal mode not set, 
+            // but even with sidereal mode, sometimes we need manual correction depending on flags.
+            // For safety, we treat result as tropical and subtract ayanamsa as in node implementation.
+            // Wait, node implementation does explicit subtraction: 
+            // ascendant = normalizeLongitude(ascendant - ayanamsaValue);
+            const ascendant = (0, sweph_core_1.normalizeLongitude)(result.ascmc[0] - ayanamsaVal);
+            const houses = result.cusp.slice(1, 13).map((c) => (0, sweph_core_1.normalizeLongitude)(c - ayanamsaVal));
+            return {
+                longitude: ascendant,
+                rasi: (0, sweph_core_1.getRashi)(ascendant),
+                rasiDegree: (0, sweph_core_1.getRashiDegree)(ascendant),
+                houses,
             };
         },
         calculateMoonData,

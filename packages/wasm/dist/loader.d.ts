@@ -8,9 +8,9 @@ import { WasmAdapter } from './adapter';
  * Options for loading the WASM module
  */
 export interface WasmLoadOptions {
-    /** Custom URL for the WASM file */
+    /** Custom URL for the WASM file (can be a CDN URL) */
     wasmUrl?: string;
-    /** Custom URL for the JS glue code */
+    /** Custom URL for the JS glue code (optional) */
     jsUrl?: string;
 }
 /**

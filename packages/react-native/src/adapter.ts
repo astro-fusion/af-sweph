@@ -78,6 +78,11 @@ export class ReactNativeAdapter implements ISwephAdapter {
         return NativeSweph.swe_azalt(tjd_ut, calc_flag, geopos, atpress, attemp, xin);
     }
 
+    swe_houses(tjd_ut: number, geolat: number, geolon: number, hsys: number): any {
+        // TODO: Implement native bridge for swe_houses in React Native
+        return { error: 'swe_houses not implemented in React Native adapter yet' };
+    }
+
     swe_version(): string {
         return NativeSweph.swe_version();
     }

@@ -13,6 +13,7 @@
  */
 export * from '@af/sweph-core';
 export { WasmAdapter } from './adapter';
+export { WasmEngine } from './engine';
 export { loadWasmModule, getAdapter, isLoaded, isWasmSupported } from './loader';
 export type { WasmLoadOptions } from './loader';
 import { WasmLoadOptions } from './loader';

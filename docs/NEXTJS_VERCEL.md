@@ -9,6 +9,39 @@ Vercel's serverless functions have specific requirements for native Node.js modu
 1. **Native binaries must be included in the bundle** - Next.js output file tracing must explicitly include the `.node` prebuilds
 2. **Symlinks don't work** - pnpm's symlinked node_modules may not be traced correctly
 3. **Platform-specific binaries** - The `linux-x64` prebuild must be available at runtime
+4. **Size Limits** - Vercel functions have a 250MB (unzipped) limit. Including too many binaries can crash the deployment.
+
+## 🧠 Technical Deep Dive: Why is this so hard?
+
+Deploying native modules (C++ ad dons) to Serverless is notoriously difficult. Here is why:
+
+### 1. The ABI Nightmare (Node.js Version Mismatch)
+Native modules are compiled against a specific Node.js **ABI (Application Binary Interface)**.
+- If you build locally on Node 22, the binary expects Node 22 ABI.
+- If Vercel runs on Node 20, the binary **will crash** with `Error: The module was compiled against a different Node.js version`.
+- **Solution:** We explicitly ship prebuilt binaries for multiple Node versions and platforms (`linux-x64`, `darwin-arm64`) and load the correct one at runtime.
+
+### 2. The "GLIBC" Trap
+Linux isn't just "Linux".
+- Local Linux (Ubuntu/Debian) might have a newer `glibc`.
+- Vercel/AWS Lambda often run on Amazon Linux 2, which has an older `glibc`.
+- **Result:** `Error: /lib64/libc.so.6: version 'GLIBC_2.28' not found`.
+- **Solution:** Our prebuilds are compiled in a Docker container that mimics the Vercel execution environment.
+
+### 3. "Sloppy Code" Pitfalls
+Common patterns that break in Serverless:
+- ❌ **Relative Paths:** `path.join(__dirname, './bin')` often points to the wrong place because files are moved during bundling.
+- ❌ **Assuming Persistence:** Saving a file to disk? It's gone on the next request.
+- ❌ **Lazy Error Handling:** Swallowing "Module Not Found" errors leads to "silent failures" where the app works but returns wrong data (or purely mathematical approximations).
+
+### 4. The 250MB Limit
+Vercel enforces a strict 250MB unzipped limit per function.
+- **The Problem:** Including ALL prebuilds (Windows, Mac, Linux x Node 18, 20, 22) exceeds 250MB.
+- **The Fix:** We use "Tiered Loading":
+    1.  **Prefer WASM:** (Coming soon) Light, consistent, safe.
+    2.  **Specific Prebuilds:** Only bundle `linux-x64` for production.
+
+---
 
 ## Required Configuration
 

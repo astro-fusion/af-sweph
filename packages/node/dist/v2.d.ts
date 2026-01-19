@@ -31,6 +31,8 @@ export interface SwephInitOptions {
     enableCaching?: boolean;
     /** Serverless optimization mode (automatically detected, but can be overridden) */
     serverlessMode?: boolean;
+    /** URL for WASM binary (e.g. CDN URL) for serverless environments */
+    wasmUrl?: string;
 }
 /**
  * Location with optional timezone

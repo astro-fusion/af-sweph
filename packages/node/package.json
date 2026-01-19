@@ -33,11 +33,11 @@
     },
     "dependencies": {
         "@af/sweph-core": "workspace:*",
-        "node-gyp-build": "^4.8.0"
-    },
-    "optionalDependencies": {
+        "@af/sweph-lite": "workspace:*",
+        "@af/sweph-wasm": "workspace:*",
         "swisseph-v2": "^1.0.4"
     },
+    "optionalDependencies": {},
     "devDependencies": {
         "@types/node": "^20.12.7",
         "@vitest/coverage-v8": "^1.6.1",
