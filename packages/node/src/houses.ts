@@ -1,39 +1,37 @@
 /**
- * House and Lagna Calculations for @AstroFusion/sweph
+ * @file houses.ts
+ * @description House and Lagna (Ascendant) calculation module for @af/sweph-node.
+ * Handles the calculation of house cusps and the ascendant, including sidereal 
+ * adjustments necessary for Vedic astrology.
  */
 
-import type { LagnaInfo, GeoLocation, CalculationOptions } from './types';
+import type { CalculationOptions, GeoLocation, LagnaInfo } from './types';
 import { HouseSystem } from './types';
-import { 
-  initializeSweph, 
-  getNativeModule, 
-  dateToJulian, 
+import {
+  dateToJulian,
   getAyanamsa,
-  normalizeLongitude,
+  getNativeModule,
   getRashi,
-  getRashiDegree
+  getRashiDegree,
+  initializeSweph,
+  normalizeLongitude
 } from './utils';
 
 /**
- * Calculate Lagna (Ascendant) and house cusps for Vedic astrology
- * @param date - Birth date and time (local time)
- * @param location - Birth location coordinates
- * @param options - Calculation options (ayanamsa, house system)
- * @returns LagnaInfo object with ascendant and all 12 house cusps
- * @throws Error if Swiss Ephemeris calculation fails
+ * Calculate Lagna (Ascendant) and 12 house cusps.
+ * 
+ * Note: Swiss Ephemeris `swe_houses` returns tropical results by default even in 
+ * sidereal mode for certain configurations. This function manually subtracts 
+ * the ayanamsa to ensure consistent sidereal results for Vedic astrology.
+ * 
+ * @param date - Date and time for calculation (local time).
+ * @param location - Birth location coordinates and timezone.
+ * @param options - Calculation options (ayanamsa type, house system).
+ * @returns LagnaInfo object containing ascendant and 12 house cusps.
+ * @throws Error if Swiss Ephemeris calculation fails.
  * @example
  * ```typescript
- * const lagna = calculateLagna(new Date('1990-01-15T14:30:00'), {
- *   latitude: 27.7172,
- *   longitude: 85.324,
- *   timezone: 5.75
- * }, {
- *   ayanamsa: AYANAMSA.LAHIRI,
- *   houseSystem: HOUSE_SYSTEMS.PLACIDUS
- * });
- *
- * console.log(`Ascendant: ${lagna.rasi}°${lagna.degree.toFixed(2)}' in ${RASHIS[lagna.rasi-1].name}`);
- * console.log(`House 7 (Descendant): ${lagna.houses[6].toFixed(2)}°`);
+ * const lagna = calculateLagna(new Date(), { latitude: 27.7, longitude: 85.3 });
  * ```
  */
 export function calculateLagna(
@@ -43,80 +41,70 @@ export function calculateLagna(
 ): LagnaInfo {
   initializeSweph();
   const sweph = getNativeModule();
-  
+
   const { ayanamsa = 1, houseSystem = HouseSystem.PLACIDUS } = options;
-  const timezone = location.timezone ?? 0;
-  
-  // Convert to UTC
-  const utcTime = new Date(date.getTime() - timezone * 60 * 60 * 1000);
-  const jd = dateToJulian(utcTime);
-  
-  // Set sidereal mode
+
+  // Use the Date object's UTC moment directly. 
+  // dateToJulian uses getUTC* methods which is the correct way to handle birth moments.
+  const julianDay = dateToJulian(date);
+
+  // Configure sidereal mode
   sweph.swe_set_sid_mode(ayanamsa, 0, 0);
-  
-  // Calculate houses
+
+  // Get house cusps and ascmc points from native module
+  // 'houseSystem' is a single character string (e.g., 'P', 'W')
   const houseResult = sweph.swe_houses(
-    jd,
+    julianDay,
     location.latitude,
     location.longitude,
     houseSystem
   );
-  
-  let ascendant = 0;
-  let houses: number[] = [];
-  
-  // Extract ascendant from result
-  if ('ascendant' in houseResult && typeof houseResult.ascendant === 'number') {
-    ascendant = houseResult.ascendant;
-  } else if (Array.isArray(houseResult.cusp)) {
-    ascendant = houseResult.cusp[0] || 0;
+
+  let ascendantLongitude = 0;
+  let houseCusps: number[] = [];
+
+  // Extract results based on return format (varies by native bridge version)
+  if (houseResult && typeof houseResult === 'object') {
+    if ('ascendant' in houseResult && typeof houseResult.ascendant === 'number') {
+      ascendantLongitude = houseResult.ascendant;
+    } else if (Array.isArray(houseResult.ascmc)) {
+      ascendantLongitude = houseResult.ascmc[0] || 0;
+    } else if (Array.isArray(houseResult.cusp)) {
+      ascendantLongitude = houseResult.cusp[0] || 0;
+    }
+
+    if (Array.isArray(houseResult.house)) {
+      houseCusps = houseResult.house;
+    } else if (Array.isArray(houseResult.cusp)) {
+      // Index 1-12 are the 12 houses
+      houseCusps = houseResult.cusp.slice(1, 13);
+    }
   }
-  
-  // Extract house cusps
-  if (Array.isArray(houseResult.house)) {
-    houses = houseResult.house;
-  } else if (Array.isArray(houseResult.cusp)) {
-    houses = houseResult.cusp.slice(1, 13);
-  }
-  
-  // Get ayanamsa value and convert to sidereal
+
+  // Calculate current ayanamsa value for manual sidereal adjustment
   const ayanamsaValue = getAyanamsa(date, ayanamsa);
-  
-  // Convert to sidereal longitude
-  ascendant = normalizeLongitude(ascendant - ayanamsaValue);
-  houses = houses.map(cusp => normalizeLongitude(cusp - ayanamsaValue));
-  
+
+  // Adjust tropical longitudes to sidereal
+  const siderealAscendant = normalizeLongitude(ascendantLongitude - ayanamsaValue);
+  const siderealHouses = houseCusps.map(cusp => normalizeLongitude(cusp - ayanamsaValue));
+
   return {
-    longitude: ascendant,
-    rasi: getRashi(ascendant),
-    degree: getRashiDegree(ascendant),
-    houses: houses.slice(0, 12),
-    ayanamsaValue,
-    // Legacy compatibility fields
-    lagna: ascendant,
-    lagnaRasi: getRashi(ascendant),
-    lagnaDegree: getRashiDegree(ascendant),
-    julianDay: jd,
+    longitude: siderealAscendant,
+    rasi: getRashi(siderealAscendant),
+    rasiDegree: getRashiDegree(siderealAscendant),
+    houses: siderealHouses.slice(0, 12),
+    // Compatibility fields
+    julianDay: julianDay,
   };
 }
 
 /**
- * Calculate house cusps only (without ascendant details)
- * @param date - Birth date and time (local time)
- * @param location - Birth location coordinates
- * @param options - Calculation options (ayanamsa, house system)
- * @returns Array of 12 house cusp longitudes in degrees (0°-360°)
- * @example
- * ```typescript
- * const houses = calculateHouses(new Date(), {
- *   latitude: 40.7128,
- *   longitude: -74.0060,
- *   timezone: -5
- * });
- *
- * console.log(`1st House: ${houses[0].toFixed(2)}°`);
- * console.log(`7th House: ${houses[6].toFixed(2)}°`); // Descendant
- * ```
+ * Calculate 12 house cusps only.
+ * 
+ * @param date - Date and time for calculation.
+ * @param location - Geographic location.
+ * @param options - Calculation options.
+ * @returns Array of 12 house cusp longitudes (0-360).
  */
 export function calculateHouses(
   date: Date,
@@ -124,44 +112,42 @@ export function calculateHouses(
   options: CalculationOptions = {}
 ): number[] {
   const lagnaInfo = calculateLagna(date, location, options);
-  return lagnaInfo.houses;
+  return lagnaInfo.houses || [];
 }
 
 /**
- * Determine which house a planet occupies based on its longitude
- * @param planetLongitude - Planet's ecliptic longitude in degrees (0-360)
- * @param houses - Array of 12 house cusp longitudes from calculateHouses()
- * @returns House number (1-12) where the planet is located
+ * Determine which house a specific longitude occupies.
+ * 
+ * @param planetLongitude - Ecliptic longitude in degrees (0-360).
+ * @param houses - Array of 12 house cusp longitudes.
+ * @returns House number (1-12).
  * @example
  * ```typescript
- * const lagna = calculateLagna(birthDate, location);
- * const planets = calculatePlanets(birthDate);
- * const sunHouse = getHousePosition(planets[0].longitude, lagna.houses);
- * console.log(`Sun is in house ${sunHouse}`);
+ * const house = getHousePosition(120.5, houses);
  * ```
  */
 export function getHousePosition(planetLongitude: number, houses: number[]): number {
-  const normPlanet = normalizeLongitude(planetLongitude);
-  
+  if (!houses || houses.length < 12) return 1;
+
+  const normalizedPlanet = normalizeLongitude(planetLongitude);
+
   for (let i = 0; i < 12; i++) {
-    const houseStart = houses[i];
-    const houseEnd = houses[(i + 1) % 12];
-    
-    if (houseEnd !== undefined && houseStart !== undefined) {
-      // Handle wrap-around at 360°
-      if (houseStart > houseEnd) {
-        // House spans 0°
-        if (normPlanet >= houseStart || normPlanet < houseEnd) {
-          return i + 1;
-        }
-      } else {
-        if (normPlanet >= houseStart && normPlanet < houseEnd) {
-          return i + 1;
-        }
+    const startCusp = houses[i];
+    const endCusp = houses[(i + 1) % 12];
+
+    if (startCusp === undefined || endCusp === undefined) continue;
+
+    // Handle wrap-around situation at 360/0 degrees
+    if (startCusp > endCusp) {
+      if (normalizedPlanet >= startCusp || normalizedPlanet < endCusp) {
+        return i + 1;
+      }
+    } else {
+      if (normalizedPlanet >= startCusp && normalizedPlanet < endCusp) {
+        return i + 1;
       }
     }
   }
-  
-  // Default to house 1 if not found
+
   return 1;
 }

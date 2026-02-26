@@ -36,7 +36,9 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "generate": "node scripts/generate-ephemeris.js",
+    "generate:year": "node scripts/generate-ephemeris.js --year"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

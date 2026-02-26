@@ -5,23 +5,27 @@
  * and is used as the default for most calculations.
  */
 
-import * as Astronomy from 'astronomy-engine';
 import type {
-    ICalculationEngine,
-    Planet,
-    GeoLocation,
-    SunTimes,
-    MoonPhase,
-    LagnaInfo,
     CalculationOptions,
+    GeoLocation,
+    ICalculationEngine,
+    LagnaInfo,
+    MoonPhase,
+    Planet,
+    SunTimes,
 } from '@af/sweph-core';
 import {
     CalculationTier,
     EngineFeatures,
     FeatureNotSupportedError,
 } from '@af/sweph-core';
+import * as Astronomy from 'astronomy-engine';
 
-// Vedic planet mapping: astronomy-engine Body -> our Planet id
+/**
+ * Mapping between astronomy-engine Body and our internal Planet structure.
+ * Standard planet IDs for Sun through Saturn.
+ * Rahu and Ketu are handled separately due to special calculation logic.
+ */
 const PLANET_MAPPING: Array<{ body: Astronomy.Body; id: string; name: string }> = [
     { body: Astronomy.Body.Sun, id: 'sun', name: 'Sun' },
     { body: Astronomy.Body.Moon, id: 'moon', name: 'Moon' },
@@ -44,7 +48,7 @@ function calculateAyanamsa(date: Date, type: number = 1): number {
     // J2000.0 epoch: January 1, 2000, 12:00 TT
     const j2000 = new Date('2000-01-01T12:00:00Z');
     const yearsSinceJ2000 = (date.getTime() - j2000.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-    
+
     // Base ayanamsa values for different systems
     const baseAyanamsa: Record<number, number> = {
         0: 24.04, // Fagan-Bradley
@@ -52,7 +56,7 @@ function calculateAyanamsa(date: Date, type: number = 1): number {
         3: 22.38, // Raman
         5: 23.45, // Krishnamurti
     };
-    
+
     const base = baseAyanamsa[type] ?? LAHIRI_AYANAMSA_J2000;
     return base + (yearsSinceJ2000 * AYANAMSA_RATE);
 }
@@ -87,14 +91,14 @@ function getRashiDegree(longitude: number): number {
 export class LiteEngine implements ICalculationEngine {
     readonly tier = CalculationTier.FAST;
     readonly name = 'lite';
-    
+
     readonly supportedFeatures = new Set([
         EngineFeatures.PLANETS,
         EngineFeatures.SUN_TIMES,
         EngineFeatures.MOON_PHASE,
         EngineFeatures.AYANAMSA, // approximated
     ]);
-    
+
     private initialized = false;
 
     async isAvailable(): Promise<boolean> {
@@ -117,10 +121,10 @@ export class LiteEngine implements ICalculationEngine {
     async calculatePlanets(date: Date, options?: CalculationOptions): Promise<Planet[]> {
         const ayanamsa = calculateAyanamsa(date, options?.ayanamsa ?? 1);
         const planets: Planet[] = [];
-        
+
         // Create observer for geocentric calculations
         const observer = new Astronomy.Observer(0, 0, 0);
-        
+
         for (const mapping of PLANET_MAPPING) {
             try {
                 // Get geocentric equatorial coordinates
@@ -131,18 +135,18 @@ export class LiteEngine implements ICalculationEngine {
                     true,   // equdate (of date)
                     true    // aberration correction
                 );
-                
+
                 // Convert to ecliptic longitude
                 const ecliptic = Astronomy.Ecliptic(equator.vec);
                 const tropicalLongitude = ecliptic.elon;
                 const siderealLongitude = tropicalToSidereal(tropicalLongitude, ayanamsa);
-                
+
                 // Calculate speed (daily motion)
                 const tomorrow = new Date(date.getTime() + 24 * 60 * 60 * 1000);
                 const equatorTomorrow = Astronomy.Equator(mapping.body, tomorrow, observer, true, true);
                 const eclipticTomorrow = Astronomy.Ecliptic(equatorTomorrow.vec);
                 const speed = eclipticTomorrow.elon - tropicalLongitude;
-                
+
                 planets.push({
                     id: mapping.id,
                     name: mapping.name,
@@ -159,7 +163,7 @@ export class LiteEngine implements ICalculationEngine {
                 // Failed to calculate planet - skip
             }
         }
-        
+
         // Calculate Rahu (Mean North Node)
         try {
             const moonNode = Astronomy.SearchMoonNode(date);
@@ -168,11 +172,11 @@ export class LiteEngine implements ICalculationEngine {
                 // This is a simplification - for exact values use SWEPH
                 const moonEquator = Astronomy.Equator(Astronomy.Body.Moon, date, observer, true, true);
                 const moonEcliptic = Astronomy.Ecliptic(moonEquator.vec);
-                
+
                 // Rahu is approximately opposite to the node crossing point
                 // This is an approximation for the mean node
                 const rahuLongitude = tropicalToSidereal(moonEcliptic.elon + 180, ayanamsa);
-                
+
                 planets.push({
                     id: 'rahu',
                     name: 'Rahu',
@@ -185,7 +189,7 @@ export class LiteEngine implements ICalculationEngine {
                     isRetrograde: true,
                     totalDegree: rahuLongitude,
                 });
-                
+
                 // Ketu is exactly opposite to Rahu
                 const ketuLongitude = (rahuLongitude + 180) % 360;
                 planets.push({
@@ -204,7 +208,7 @@ export class LiteEngine implements ICalculationEngine {
         } catch (_error) {
             // Failed to calculate Rahu/Ketu - skip
         }
-        
+
         return planets;
     }
 
@@ -213,8 +217,8 @@ export class LiteEngine implements ICalculationEngine {
      * This will throw FeatureNotSupportedError, causing the router to escalate
      */
     async calculateLagna(
-        _date: Date, 
-        _location: GeoLocation, 
+        _date: Date,
+        _location: GeoLocation,
         _options?: CalculationOptions
     ): Promise<LagnaInfo> {
         throw new FeatureNotSupportedError(EngineFeatures.LAGNA, this.tier);
@@ -229,12 +233,12 @@ export class LiteEngine implements ICalculationEngine {
             location.longitude,
             location.altitude ?? 0
         );
-        
+
         // Get sunrise
         let sunrise: Date | null = null;
         let sunset: Date | null = null;
         let solarNoon: Date = date;
-        
+
         try {
             const sunriseResult = Astronomy.SearchRiseSet(
                 Astronomy.Body.Sun,
@@ -249,7 +253,7 @@ export class LiteEngine implements ICalculationEngine {
         } catch {
             // Polar regions may not have sunrise
         }
-        
+
         try {
             const sunsetResult = Astronomy.SearchRiseSet(
                 Astronomy.Body.Sun,
@@ -264,7 +268,7 @@ export class LiteEngine implements ICalculationEngine {
         } catch {
             // Polar regions may not have sunset
         }
-        
+
         // Calculate solar noon (when sun crosses meridian)
         try {
             const hourAngle = Astronomy.HourAngle(Astronomy.Body.Sun, date, observer);
@@ -274,13 +278,13 @@ export class LiteEngine implements ICalculationEngine {
         } catch {
             solarNoon = date;
         }
-        
+
         // Calculate day length
         let dayLength = 12; // default
         if (sunrise && sunset) {
             dayLength = (sunset.getTime() - sunrise.getTime()) / (1000 * 60 * 60);
         }
-        
+
         return {
             sunrise,
             sunset,
@@ -294,13 +298,13 @@ export class LiteEngine implements ICalculationEngine {
      */
     async calculateMoonPhase(date: Date): Promise<MoonPhase> {
         const phase = Astronomy.MoonPhase(date);
-        
+
         // Calculate illumination
         const illumination = (1 - Math.cos(phase * Math.PI / 180)) / 2;
-        
+
         // Calculate age (days since new moon)
         const age = (phase / 360) * 29.53; // synodic month
-        
+
         // Determine phase name
         let phaseName: string;
         if (phase < 22.5) {
@@ -322,7 +326,7 @@ export class LiteEngine implements ICalculationEngine {
         } else {
             phaseName = 'New Moon';
         }
-        
+
         return {
             phase,
             illumination: illumination * 100,

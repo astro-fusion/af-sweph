@@ -4,7 +4,7 @@
  * Shared constants for Swiss Ephemeris calculations.
  */
 
-import { PlanetId, AyanamsaType, HouseSystem } from './types';
+import { AyanamsaType, HouseSystem, PlanetId } from './types';
 
 /**
  * Planet definitions for Vedic astrology (9 grahas)
@@ -17,7 +17,7 @@ export const PLANETS = {
     JUPITER: { id: PlanetId.JUPITER, name: 'Jupiter', sanskrit: 'Guru' },
     VENUS: { id: PlanetId.VENUS, name: 'Venus', sanskrit: 'Shukra' },
     SATURN: { id: PlanetId.SATURN, name: 'Saturn', sanskrit: 'Shani' },
-    RAHU: { id: PlanetId.TRUE_NODE, name: 'Rahu', sanskrit: 'Rahu' },
+    RAHU: { id: PlanetId.MEAN_NODE, name: 'Rahu', sanskrit: 'Rahu' }, // Vedic standard: Mean Node
     KETU: { id: -1, name: 'Ketu', sanskrit: 'Ketu' }, // Calculated as 180° from Rahu
 } as const;
 
