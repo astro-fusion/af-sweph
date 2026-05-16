@@ -7,7 +7,19 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JsonEngine = void 0;
-const sweph_core_1 = require("@af/sweph-core");
+// Inlined from @af/sweph-core so this package has zero runtime external deps.
+// Keep in sync with packages/core/src/types.ts EngineFeatures.
+const EngineFeatures = {
+    PLANETS: 'planets',
+    LAGNA: 'lagna',
+    HOUSES: 'houses',
+    SUN_TIMES: 'sun_times',
+    MOON_PHASE: 'moon_phase',
+    MOON_TIMES: 'moon_times',
+    PLANET_RISE_SET: 'planet_rise_set',
+    AYANAMSA: 'ayanamsa',
+    AYANAMSA_EXACT: 'ayanamsa_exact',
+};
 const lagna_1 = require("./lagna");
 const ayanamsa_1 = require("./ayanamsa");
 const interpolate_1 = require("./interpolate");
@@ -120,11 +132,11 @@ class JsonEngine {
     tier = JSON_TIER;
     name = 'JsonEngine';
     supportedFeatures = new Set([
-        sweph_core_1.EngineFeatures.PLANETS,
-        sweph_core_1.EngineFeatures.LAGNA,
-        sweph_core_1.EngineFeatures.SUN_TIMES,
-        sweph_core_1.EngineFeatures.MOON_PHASE,
-        sweph_core_1.EngineFeatures.AYANAMSA,
+        EngineFeatures.PLANETS,
+        EngineFeatures.LAGNA,
+        EngineFeatures.SUN_TIMES,
+        EngineFeatures.MOON_PHASE,
+        EngineFeatures.AYANAMSA,
     ]);
     store;
     constructor(store) {
