@@ -30,8 +30,8 @@ node_modules/@af/sweph  →  node_modules/.pnpm/.../@af/sweph/
 ```
 
 When Next.js traces your output files, it follows the symlink and records the **real store
-path** in the NFT trace. That store path becomes the `filePathMap` key in Vercel's
-`.vc-config.json`. The destination path also mirrors the store path, so the file lands in your
+path** in the NFT trace. That store path becomes the `filePathMap` value (disk source) in Vercel's
+configuration, mapped to a relative key (Lambda destination). However, the Lambda destination path, so the file lands in your
 Lambda at:
 
 ```
@@ -134,7 +134,7 @@ NOT a real file in that directory (the directory was a Turbopack pointer-only st
 ```javascript
 // In your filePathMap post-processor:
 const filteredMap = {};
-for (const [key, value] of Object.entries(filePathMap)) {
+for (const [destKey, srcValue] of Object.entries(filePathMap)) {
   // Skip bare hashed-sweph directory pointers — our shims handle these
   if (key.includes('sweph-') && /-[0-9a-f]{16}/.test(key) && !key.includes('.js')) {
     continue; // prune the raw directory entry
@@ -180,11 +180,12 @@ filePathMaps. The core logic is:
 
 ```javascript
 // 1. Re-map pnpm store paths to canonical node_modules/@af/sweph/ destinations
-for (const [key, value] of Object.entries(filePathMap)) {
-  if (value.includes('node_modules/.pnpm/') && value.includes('@af/sweph')) {
-    // Replace pnpm store dest with canonical dest
-    const canonicalDest = value.replace(/node_modules\/.pnpm\/.+\/node_modules\/(@af\/sweph\/.+)/, 'node_modules/$1');
-    filePathMap[key] = canonicalDest;
+for (const [destKey, srcValue] of Object.entries(filePathMap)) {
+  if (srcValue.includes('.pnpm') && srcValue.includes('sweph')) {
+    const relPath = srcValue.split('@af/sweph/')[1] || srcValue.split('@af+sweph')[1];
+    const canonicalDest = `node_modules/@af/sweph/${relPath}`;
+    filePathMap[canonicalDest] = srcValue;
+    delete filePathMap[destKey];
   }
 }
 
@@ -235,7 +236,7 @@ cat .vercel/output/functions/\[locale\]/kundali.func/.vc-config.json \
 
 | Error | Root Cause | Fix |
 |-------|-----------|-----|
-| `Cannot find package '@af/sweph'` at runtime | pnpm symlink not deployed; file landed at pnpm store path, not `node_modules/@af/sweph/` | Re-map filePathMap dest to canonical path |
+| `Cannot find package '@af/sweph'` at runtime | pnpm symlink not deployed; file landed at pnpm store path, not `node_modules/@af/sweph/` | Re-map filePathMap keys to canonical dest paths |
 | `Cannot find module '@af/sweph-{hash}'` | Turbopack hashed alias; shim directory never uploaded (bare dir pointer) | Add `.next/node_modules/@af/sweph*/**/*` to `outputFileTracingIncludes` + inject shim |
 | `ENOENT: lstat .../sweph-{hash}/index.js` | Conflicting entries: both the raw directory pointer AND the shim in filePathMap | Prune the raw directory pointer when injecting shims |
 | `@af/sweph` missing after `vercel build` but was there before | It was added to `outputFileTracingExcludes['*']` (silently strips everything) | Remove from excludes entirely — never add it there |
