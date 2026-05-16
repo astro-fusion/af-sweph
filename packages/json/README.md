@@ -219,7 +219,7 @@ Preset [1]:
 
   1. Single year
   2. Year range
-  3. Recommended range for kundali (1950–2050)
+  3. Recommended range for kundali (1940–2050)
 
 Range [3]:
 ```
@@ -247,8 +247,8 @@ against the native SWEPH output. Not recommended for production bundles.
 ### Non-interactive (CI / scripts)
 
 ```bash
-# Standard preset, 1950–2050 (recommended for kundali)
-node scripts/generate-ephemeris.js --preset standard --start 1950 --end 2050 --yes
+# Standard preset, 1940–2050 (recommended for kundali)
+node scripts/generate-ephemeris.js --preset standard --start 1940 --end 2050 --yes
 
 # Single year, fine preset
 node scripts/generate-ephemeris.js --preset fine --year 2025 --yes
@@ -269,7 +269,7 @@ node scripts/generate-ephemeris.js --year 2024 --output ./my-ephemeris --yes
 |---|---|---|
 | `--preset <name>` | `standard` | `standard`, `fine`, or `ultra` |
 | `--year <YYYY>` | — | Single year (overrides `--start`/`--end`) |
-| `--start <YYYY>` | `1950` | Start of year range |
+| `--start <YYYY>` | `1940` | Start of year range |
 | `--end <YYYY>` | `2050` | End of year range |
 | `--moon-interval <h>` | preset default | Moon snapshot interval in hours (1–6) |
 | `--planet-interval <h>` | preset default | Planet snapshot interval in hours (1–24) |

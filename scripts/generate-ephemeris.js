@@ -8,7 +8,7 @@
  * Usage:
  *   node scripts/generate-ephemeris.js              # interactive menu
  *   node scripts/generate-ephemeris.js --preset standard --year 2024
- *   node scripts/generate-ephemeris.js --start 1950 --end 2050 --moon-interval 3
+ *   node scripts/generate-ephemeris.js --start 1940 --end 2050 --moon-interval 3
  *   node scripts/generate-ephemeris.js --help
  *
  * Presets:
@@ -273,7 +273,7 @@ Usage: node scripts/generate-ephemeris.js [options]
 Options:
   --preset <name>         standard|fine|ultra  (default: standard)
   --year <YYYY>           single year (overrides --start/--end)
-  --start <YYYY>          start year  (default: 1950)
+  --start <YYYY>          start year  (default: 1940)
   --end <YYYY>            end year    (default: 2050)
   --moon-interval <h>     Moon snapshot interval in hours (1, 2, 3, 6)
   --planet-interval <h>   Planet snapshot interval in hours (1, 6, 12, 24)
@@ -356,7 +356,7 @@ async function interactiveMenu() {
     console.log('\n── Date range ──\n');
     console.log('  1. Single year');
     console.log('  2. Year range');
-    console.log('  3. Recommended range for kundali (1950–2050)\n');
+    console.log('  3. Recommended range for kundali (1940–2050)\n');
 
     const rangeChoice = (await ask(iface, 'Range [3]: ')).trim() || '3';
     let startYear, endYear;
@@ -365,12 +365,12 @@ async function interactiveMenu() {
         const y = (await ask(iface, `  Year [${CURRENT_YEAR}]: `)).trim() || String(CURRENT_YEAR);
         startYear = endYear = parseInt(y);
     } else if (rangeChoice === '2') {
-        const s = (await ask(iface, '  Start year [1950]: ')).trim() || '1950';
+        const s = (await ask(iface, '  Start year [1940]: ')).trim() || '1940';
         const e = (await ask(iface, '  End year   [2050]: ')).trim() || '2050';
         startYear = parseInt(s);
         endYear   = parseInt(e);
     } else {
-        startYear = 1950;
+        startYear = 1940;
         endYear   = 2050;
     }
 
@@ -431,7 +431,7 @@ async function main() {
         if (argv.year) {
             startYear = endYear = argv.year;
         } else {
-            startYear = argv.start ?? 1950;
+            startYear = argv.start ?? 1940;
             endYear   = argv.end   ?? 2050;
         }
 
