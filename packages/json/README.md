@@ -183,13 +183,134 @@ date,moon_long,moon_speed
 
 ## Generating ephemeris data
 
+The `scripts/generate-ephemeris.js` script (in the repository root) produces the CSV files
+that `@af/sweph-json` loads. It requires `@af/sweph-node` (native C++ bindings) to be built
+first, so it runs offline — you generate once and ship the CSV files with your app.
+
+### Prerequisites
+
 ```bash
-# From the repository root
-pnpm generate              # Current year
-pnpm generate:year -- 2025 # Specific year
+# 1. Build the native node package
+pnpm -F @af/sweph-node build
+
+# 2. Run the generator (from the repo root)
+node scripts/generate-ephemeris.js
 ```
 
-Output lands in `ephemeris_data/<year>/main.csv` and `moon.csv`.
+### Interactive menu (no arguments)
+
+Running without flags launches a guided menu:
+
+```
+╔══════════════════════════════════════════════════════════╗
+║        @af/sweph Ephemeris Data Generator               ║
+╚══════════════════════════════════════════════════════════╝
+
+Select accuracy preset:
+
+  1. standard    Daily noon, Moon 6h,  4 decimal places (~190 KB/year)
+  2. fine        Daily noon, Moon 3h,  6 decimal places (~280 KB/year)
+  3. ultra       Hourly planets, Moon 1h, 8 decimal places (~4 MB/year)
+  4. Custom      — set parameters individually
+
+Preset [1]:
+
+── Date range ──
+
+  1. Single year
+  2. Year range
+  3. Recommended range for kundali (1950–2050)
+
+Range [3]:
+```
+
+The menu prompts for preset, date range, and output directory, then shows a summary and
+estimated disk size before writing any files.
+
+### Presets
+
+| Preset | Planet interval | Moon interval | Precision | Size / year | Use case |
+|---|---|---|---|---|---|
+| `standard` | 24h (noon) | 6h | 4 dp | ~190 KB | Kundali, panchanga |
+| `fine` | 24h (noon) | 3h | 6 dp | ~280 KB | Higher Moon accuracy |
+| `ultra` | 1h | 1h | 8 dp | ~4 MB | Research / validation |
+
+**Standard** is the default and covers all Vedic use cases. Moon error stays below 0.1°
+with 6-hourly data and linear interpolation.
+
+**Fine** halves Moon error to ~0.05° — worth it when Moon sign transitions matter (e.g.,
+Moon crossing a nakshatra boundary within a birth hour window).
+
+**Ultra** generates sub-degree planet accuracy and is useful for validating the JSON engine
+against the native SWEPH output. Not recommended for production bundles.
+
+### Non-interactive (CI / scripts)
+
+```bash
+# Standard preset, 1950–2050 (recommended for kundali)
+node scripts/generate-ephemeris.js --preset standard --start 1950 --end 2050 --yes
+
+# Single year, fine preset
+node scripts/generate-ephemeris.js --preset fine --year 2025 --yes
+
+# Custom Moon interval, specific range
+node scripts/generate-ephemeris.js --start 2000 --end 2030 --moon-interval 3 --yes
+
+# Ultra precision for one year (validation/research)
+node scripts/generate-ephemeris.js --year 2024 --preset ultra --yes
+
+# Custom output directory
+node scripts/generate-ephemeris.js --year 2024 --output ./my-ephemeris --yes
+```
+
+### CLI flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--preset <name>` | `standard` | `standard`, `fine`, or `ultra` |
+| `--year <YYYY>` | — | Single year (overrides `--start`/`--end`) |
+| `--start <YYYY>` | `1950` | Start of year range |
+| `--end <YYYY>` | `2050` | End of year range |
+| `--moon-interval <h>` | preset default | Moon snapshot interval in hours (1–6) |
+| `--planet-interval <h>` | preset default | Planet snapshot interval in hours (1–24) |
+| `--precision <n>` | preset default | Decimal places (2–10) |
+| `--output <dir>` | `./ephemeris_data` | Output root directory |
+| `--yes` | — | Skip confirmation prompt |
+| `--help` | — | Show usage |
+
+### Output structure
+
+```
+ephemeris_data/
+  2024/
+    main.csv   — all planets at configured interval (noon UTC by default)
+    moon.csv   — Moon at finer interval (6h / 3h / 1h)
+  2025/
+    main.csv
+    moon.csv
+  ...
+```
+
+The loader reads one year bundle at a time and caches parsed data at module scope.
+Lambda warm containers pay the CSV parse cost once (~2–5ms per year).
+
+### Tuning accuracy
+
+To improve accuracy for a specific use case, override individual parameters with `--custom`:
+
+```bash
+# Moon every 2 hours, everything else standard
+node scripts/generate-ephemeris.js \
+  --preset standard \
+  --moon-interval 2 \
+  --precision 6 \
+  --year 2024 \
+  --yes
+```
+
+Reducing `--moon-interval` has the biggest impact on birth chart accuracy because the Moon
+moves ~0.5° per hour. Reducing `--planet-interval` below 24h is only useful for research —
+slow outer planets (Saturn, Jupiter) move < 0.1° per day.
 
 ## Performance
 
