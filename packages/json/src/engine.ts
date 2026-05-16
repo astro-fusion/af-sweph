@@ -15,7 +15,20 @@ import type {
     CalculationOptions,
     CalculationTier,
 } from '@af/sweph-core';
-import { EngineFeatures } from '@af/sweph-core';
+
+// Inlined from @af/sweph-core so this package has zero runtime external deps.
+// Keep in sync with packages/core/src/types.ts EngineFeatures.
+const EngineFeatures = {
+    PLANETS:        'planets',
+    LAGNA:          'lagna',
+    HOUSES:         'houses',
+    SUN_TIMES:      'sun_times',
+    MOON_PHASE:     'moon_phase',
+    MOON_TIMES:     'moon_times',
+    PLANET_RISE_SET:'planet_rise_set',
+    AYANAMSA:       'ayanamsa',
+    AYANAMSA_EXACT: 'ayanamsa_exact',
+} as const;
 import type { DailyPlanetaryRow } from './types';
 import { EphemerisStore } from './loader';
 import { getFastLagna } from './lagna';

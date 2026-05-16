@@ -22,8 +22,12 @@
         "lint": "eslint src",
         "type-check": "tsc --noEmit"
     },
-    "dependencies": {
+    "dependencies": {},
+    "peerDependencies": {
         "@af/sweph-core": "workspace:*"
+    },
+    "peerDependenciesMeta": {
+        "@af/sweph-core": { "optional": true }
     },
     "devDependencies": {
         "@types/node": "^20.12.7",
