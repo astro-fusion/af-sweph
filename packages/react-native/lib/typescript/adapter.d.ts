@@ -22,6 +22,7 @@ export declare class ReactNativeAdapter implements ISwephAdapter {
         error: string;
     };
     swe_azalt(tjd_ut: number, calc_flag: number, geopos: number[], atpress: number, attemp: number, xin: number[]): AzAltResult;
+    swe_houses(tjd_ut: number, geolat: number, geolon: number, hsys: number): any;
     swe_version(): string;
 }
 //# sourceMappingURL=adapter.d.ts.map

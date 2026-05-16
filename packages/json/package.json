@@ -1,0 +1,53 @@
+{
+    "name": "@af/sweph-json",
+    "version": "0.1.0",
+    "description": "Zero-native-dependency JSON ephemeris engine for @af/sweph — works in any JS environment including Vercel serverless, edge functions, and React Native",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "require": "./dist/index.js",
+            "default": "./dist/index.js"
+        }
+    },
+    "sideEffects": false,
+    "files": [
+        "dist",
+        "src"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest run",
+        "lint": "eslint src",
+        "type-check": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@af/sweph-core": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "^20.12.7",
+        "@vitest/coverage-v8": "^1.6.1",
+        "typescript": "^5.9.3",
+        "vitest": "^1.6.1"
+    },
+    "keywords": [
+        "swiss-ephemeris",
+        "sweph",
+        "astrology",
+        "vedic",
+        "jyotish",
+        "planets",
+        "serverless",
+        "edge",
+        "json",
+        "ephemeris"
+    ],
+    "author": "AstroFusion <contact@astrofusion.com>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/astro-fusion/af-sweph.git",
+        "directory": "packages/json"
+    }
+}

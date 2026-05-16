@@ -77,8 +77,10 @@ export async function createSweph(options?: WasmLoadOptions): Promise<ISwephInst
         return phases[phaseIndex] ?? 'New Moon';
     }
 
-    function calculateMoonData(date: Date, _location: GeoLocation): MoonData {
+    function calculateMoonData(date: Date, location: GeoLocation): MoonData {
         const jd = dateToJulian(date);
+        const timezone = location.timezone ?? 0;
+        const geopos = [location.longitude, location.latitude, location.altitude || 0];
 
         const sunResult = adapter.swe_calc_ut(jd, PLANETS.SUN.id, adapter.SEFLG_SWIEPH);
         const moonResult = adapter.swe_calc_ut(jd, PLANETS.MOON.id, adapter.SEFLG_SWIEPH);
@@ -91,12 +93,20 @@ export async function createSweph(options?: WasmLoadOptions): Promise<ISwephInst
         const illumination = (1 - Math.cos(phase * Math.PI / 180)) / 2 * 100;
         const age = phase / 360 * 29.53;
 
+        // Calculate moon rise/set
+        const riseResult = adapter.swe_rise_trans(jd, PLANETS.MOON.id, '', adapter.SEFLG_SWIEPH, adapter.SE_CALC_RISE, geopos, 0, 0);
+        const setResult = adapter.swe_rise_trans(jd, PLANETS.MOON.id, '', adapter.SEFLG_SWIEPH, adapter.SE_CALC_SET, geopos, 0, 0);
+        const transitResult = adapter.swe_rise_trans(jd, PLANETS.MOON.id, '', adapter.SEFLG_SWIEPH, adapter.SE_CALC_MTRANSIT, geopos, 0, 0);
+
         return {
             illumination,
             age,
             phase,
             phaseName: getMoonPhaseName(phase),
             distance: moonResult.distance * 149597870.7,
+            moonrise: 'transitTime' in riseResult ? julianToDate(riseResult.transitTime, timezone) : null,
+            moonset: 'transitTime' in setResult ? julianToDate(setResult.transitTime, timezone) : null,
+            transit: 'transitTime' in transitResult ? julianToDate(transitResult.transitTime, timezone) : null,
         };
     }
 
@@ -161,12 +171,54 @@ export async function createSweph(options?: WasmLoadOptions): Promise<ISwephInst
             return planets;
         },
 
-        calculateSunTimes(_date: Date, _location: GeoLocation): SunTimes {
+        calculateSunTimes(date: Date, location: GeoLocation): SunTimes {
+            const timezone = location.timezone ?? 0;
+            
+            // Convert to UTC midnight for the calculation base
+            const utcDate = new Date(date.getTime() - timezone * 60 * 60 * 1000);
+            utcDate.setUTCHours(0, 0, 0, 0);
+            const jd = dateToJulian(utcDate);
+            
+            const geopos = [location.longitude, location.latitude, location.altitude || 0];
+            
+            // Standard sunrise/sunset (rsmi = SE_CALC_RISE/SET)
+            const sunriseResult = adapter.swe_rise_trans(jd, 0, '', adapter.SEFLG_SWIEPH, adapter.SE_CALC_RISE, geopos, 0, 0);
+            const sunsetResult = adapter.swe_rise_trans(jd, 0, '', adapter.SEFLG_SWIEPH, adapter.SE_CALC_SET, geopos, 0, 0);
+            
+            if ('error' in sunriseResult || 'error' in sunsetResult) {
+                // If calculation fails, return safe defaults or nulls
+                return {
+                    sunrise: null,
+                    sunset: null,
+                    solarNoon: date,
+                    dayLength: 0,
+                };
+            }
+
+            const sunrise = julianToDate(sunriseResult.transitTime, timezone);
+            const sunset = julianToDate(sunsetResult.transitTime, timezone);
+            
+            const dayLengthMs = sunset.getTime() - sunrise.getTime();
+            const dayLength = dayLengthMs / (1000 * 60 * 60);
+            const solarNoon = new Date(sunrise.getTime() + dayLengthMs / 2);
+
+            // Twilight calculations (Sun 6 degrees below horizon for civil)
+            // SE_BIT_CIVIL_TWILIGHT (0x100) or similar flags are sometimes required 
+            // but in SwissEph usually you adjust the altitude or use specific rsmi bits.
+            // Following node implementation pattern:
+            const civilFlags = adapter.SE_CALC_RISE | 0x100; // SE_BIT_CIVIL_TWILIGHT usually 0x100
+            const civilSetFlags = adapter.SE_CALC_SET | 0x100;
+            
+            const cRiseResult = adapter.swe_rise_trans(jd, 0, '', adapter.SEFLG_SWIEPH, civilFlags, geopos, 0, 0);
+            const cSetResult = adapter.swe_rise_trans(jd, 0, '', adapter.SEFLG_SWIEPH, civilSetFlags, geopos, 0, 0);
+
             return {
-                sunrise: null,
-                sunset: null,
-                solarNoon: new Date(),
-                dayLength: 12,
+                sunrise,
+                sunset,
+                solarNoon,
+                dayLength,
+                civilTwilightStart: 'transitTime' in cRiseResult ? julianToDate(cRiseResult.transitTime, timezone) : null,
+                civilTwilightEnd: 'transitTime' in cSetResult ? julianToDate(cSetResult.transitTime, timezone) : null,
             };
         },
 
@@ -187,12 +239,6 @@ export async function createSweph(options?: WasmLoadOptions): Promise<ISwephInst
             const ayanamsaVal = adapter.swe_get_ayanamsa(jd);
             
             // Apply ayanamsa correction (Tropical -> Sidereal)
-            // Note: swe_houses returns tropical if sidereal mode not set, 
-            // but even with sidereal mode, sometimes we need manual correction depending on flags.
-            // For safety, we treat result as tropical and subtract ayanamsa as in node implementation.
-            // Wait, node implementation does explicit subtraction: 
-            // ascendant = normalizeLongitude(ascendant - ayanamsaValue);
-            
             const ascendant = normalizeLongitude(result.ascmc[0] - ayanamsaVal);
             const houses = result.cusp.slice(1, 13).map((c: number) => normalizeLongitude(c - ayanamsaVal));
 
@@ -216,12 +262,20 @@ export async function createSweph(options?: WasmLoadOptions): Promise<ISwephInst
             };
         },
 
-        calculatePlanetRiseSetTimes(_planetId: number, _date: Date, _location: GeoLocation): PlanetRiseSetTimes {
+        calculatePlanetRiseSetTimes(planetId: number, date: Date, location: GeoLocation): PlanetRiseSetTimes {
+            const timezone = location.timezone ?? 0;
+            const jd = dateToJulian(date);
+            const geopos = [location.longitude, location.latitude, location.altitude || 0];
+
+            const riseResult = adapter.swe_rise_trans(jd, planetId, '', adapter.SEFLG_SWIEPH, adapter.SE_CALC_RISE, geopos, 0, 0);
+            const setResult = adapter.swe_rise_trans(jd, planetId, '', adapter.SEFLG_SWIEPH, adapter.SE_CALC_SET, geopos, 0, 0);
+            const transitResult = adapter.swe_rise_trans(jd, planetId, '', adapter.SEFLG_SWIEPH, adapter.SE_CALC_MTRANSIT, geopos, 0, 0);
+
             return {
-                rise: null,
-                set: null,
-                transit: null,
-                transitAltitude: 0,
+                rise: 'transitTime' in riseResult ? julianToDate(riseResult.transitTime, timezone) : null,
+                set: 'transitTime' in setResult ? julianToDate(setResult.transitTime, timezone) : null,
+                transit: 'transitTime' in transitResult ? julianToDate(transitResult.transitTime, timezone) : null,
+                transitAltitude: 0, // Not calculated in this pass
                 transitDistance: 0,
             };
         },

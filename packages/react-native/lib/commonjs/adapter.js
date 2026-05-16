@@ -58,6 +58,12 @@ class ReactNativeAdapter {
   swe_azalt(tjd_ut, calc_flag, geopos, atpress, attemp, xin) {
     return _NativeSweph.default.swe_azalt(tjd_ut, calc_flag, geopos, atpress, attemp, xin);
   }
+  swe_houses(tjd_ut, geolat, geolon, hsys) {
+    // TODO: Implement native bridge for swe_houses in React Native
+    return {
+      error: 'swe_houses not implemented in React Native adapter yet'
+    };
+  }
   swe_version() {
     return _NativeSweph.default.swe_version();
   }
