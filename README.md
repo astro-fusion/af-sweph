@@ -1,479 +1,220 @@
 # @af/sweph
 
-The ultimate Swiss Ephemeris library for Vedic Astrology, supporting Node.js, Browser (WASM), and React Native with a unified API.
+Swiss Ephemeris for Vedic Astrology — a tiered, multi-platform library that runs in Node.js, browsers (WebAssembly), React Native, and serverless/edge environments. Every package implements the same `ICalculationEngine` interface, so you can swap tiers without changing your calculation code.
 
 [![CI](https://github.com/astro-fusion/af-sweph/actions/workflows/ci.yml/badge.svg)](https://github.com/astro-fusion/af-sweph/actions/workflows/ci.yml)
 [![Build](https://github.com/astro-fusion/af-sweph/actions/workflows/build.yml/badge.svg)](https://github.com/astro-fusion/af-sweph/actions/workflows/build.yml)
 
-## 🌟 Features
+---
 
-- **✅ Auto-initialization** - Native module loads automatically
-- **✅ TypeScript First** - Complete type safety with IntelliSense
-- **✅ Vedic Astrology** - Ayanamsa, Rashis, Nakshatras built-in
-- **✅ Multi-Platform** - Node.js, Browser (WASM), React Native
-- **✅ Vercel Ready** - Pre-built binaries for serverless
-15: 
-16: ## ⚠️ Vercel / Serverless Considerations
-17: 
-18: Deploying native modules to Serverless environments involves specific challenges:
-19: 
-20: 1.  **Core Problem**: Compatibility between build environment (CI) and runtime environment (Lambda/Vercel).
-21: 2.  **Common "Sloppy Code" Pitfalls**:
-22:     *   Relying on `__dirname` which changes in bundled environments.
-23:     *   Assuming `npm install` binaries persist (they don't).
-24:     *   Ignoring local "Module not found" errors.
-25: 
-26: > [!IMPORTANT]
-27: > For a comprehensive guide on fixing deployment crashes, bundle size limits, and proper configuration, please read our [Next.js & Vercel Deployment Guide](docs/NEXTJS_VERCEL.md).
+## Which package should I use?
 
+| Environment | Recommended | Accuracy | Cold start | Native deps |
+|---|---|---|---|---|
+| Serverless / edge (Vercel, Lambda, Workers) | `@af/sweph-json` | ±0.01–0.5° | 5–30ms | None |
+| CI / testing | `@af/sweph-json` | ±0.01–0.5° | 5–30ms | None |
+| Browser (Next.js, Vite, plain HTML) | `@af/sweph-wasm` | High | ~100ms | None (WASM) |
+| React Native / Expo | `@af/sweph-react-native` | High | ~100ms | JSI Turbo Module |
+| Node.js server (long-running) | `@af/sweph` or `@af/sweph-node` | Sub-arcsecond | ~200ms | C++ bindings |
+| Node.js with JSON fallback | `@af/sweph/json` export | ±0.01–0.5° | 5–30ms | None |
 
-## 🚀 Quick Start
+---
 
-### Installation
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                        Your code                             │
+│            ICalculationEngine / SwephInstance                │
+└───────────┬─────────────┬───────────────┬────────────────────┘
+            │             │               │              │
+    ┌───────▼──────┐ ┌───▼────┐ ┌────────▼──┐ ┌────────▼──────┐
+    │  @af/sweph   │ │  LITE  │ │   WASM    │ │   JSON         │
+    │  -node       │ │  ~50ms │ │  ~100ms   │ │  <1ms warm     │
+    │  ~200ms      │ │  pure  │ │  browser  │ │  zero native   │
+    │  C++ native  │ │  JS    │ │  SwEph    │ │  precomputed   │
+    └──────────────┘ └────────┘ └───────────┘ └────────────────┘
+            │             │               │              │
+    ┌───────▼─────────────▼───────────────▼──────────────▼─────┐
+    │                  @af/sweph-core                           │
+    │    ICalculationEngine · ISwephAdapter · Planet · etc.     │
+    └───────────────────────────────────────────────────────────┘
+```
+
+Tiers ranked fastest to most accurate:
+
+| Tier | Package | Typical latency | Accuracy |
+|---|---|---|---|
+| 0: JSON | `@af/sweph-json` | <1ms warm, 5–30ms cold | ±0.01–0.5° |
+| 1: Lite | `@af/sweph-lite` | ~50ms | Good (astronomy-engine) |
+| 2: WASM | `@af/sweph-wasm` | ~100ms | High (SwEph WASM) |
+| 3: Native | `@af/sweph-node` | ~200ms | Sub-arcsecond |
+
+---
+
+## Installation
+
+### Full package (Node.js, includes all sub-packages)
 
 ```bash
-# npm
-npm install @af/sweph
-
 # pnpm
 pnpm add @af/sweph
 
-# Or from GitHub
+# npm
+npm install @af/sweph
+
+# yarn
+yarn add @af/sweph
+```
+
+### Individual packages
+
+```bash
+pnpm add @af/sweph-json @af/sweph-core   # JSON engine only (serverless, edge, RN)
+pnpm add @af/sweph-wasm @af/sweph-core   # Browser WASM
+pnpm add @af/sweph-lite @af/sweph-core   # Pure JS
+pnpm add @af/sweph-node @af/sweph-core   # Node.js native
+pnpm add @af/sweph-react-native @af/sweph-core  # React Native
+```
+
+### From GitHub
+
+```bash
 pnpm add github:astro-fusion/af-sweph
 ```
 
-### Usage
+---
+
+## Quick start
+
+All examples compute the same data — swap the import to change tiers.
+
+### JSON engine (serverless, edge, offline)
+
+```typescript
+import { createJsonSweph, NodeFsLoader } from '@af/sweph-json';
+
+const sweph = createJsonSweph({
+  loader: new NodeFsLoader('./ephemeris_data'),
+});
+
+const date = new Date('1990-07-15T10:30:00Z');
+const location = { latitude: 28.6139, longitude: 77.2090 }; // New Delhi
+
+const planets = await sweph.calculatePlanets(date, { ayanamsa: 1 }); // Lahiri
+const lagna  = await sweph.calculateLagna(date, location, { ayanamsa: 1 });
+const moon   = await sweph.calculateMoonPhase(date);
+
+console.log(planets.find(p => p.id === 'sun')?.longitude);  // e.g. 118.4
+console.log(lagna.rasi);                                     // 1–12
+console.log(moon.phaseName);                                 // "Waxing Gibbous"
+```
+
+### Lite engine (pure JS, no build step)
+
+```typescript
+import { createLiteSweph } from '@af/sweph-lite';
+
+const sweph = await createLiteSweph();
+
+const planets = await sweph.calculatePlanets(new Date(), { ayanamsa: 1 });
+const moon    = await sweph.calculateMoonPhase(new Date());
+const sun     = await sweph.calculateSunTimes(new Date(), { latitude: 28.6, longitude: 77.2 });
+```
+
+### WASM engine (browser)
+
+```typescript
+import { createSweph } from '@af/sweph-wasm';
+
+const sweph = await createSweph();
+
+const planets = sweph.calculatePlanets(new Date(), { ayanamsa: 1 });
+const lagna   = sweph.calculateLagna(new Date(), { latitude: 28.6, longitude: 77.2 });
+```
+
+### Node.js native engine (highest accuracy)
 
 ```typescript
 import { createSweph, AYANAMSA } from '@af/sweph';
 
-async function main() {
-  // Create instance (auto-initializes native module)
-  const sweph = await createSweph();
+const sweph = await createSweph();
 
-  // Define calculation date once for consistency
-  const calculationDate = new Date();
-
-  // Calculate planetary positions
-  const planets = await sweph.calculatePlanets(calculationDate, {
-    ayanamsa: AYANAMSA.LAHIRI,
-    timezone: 5.75, // Nepal
-  });
-
-  console.log('Sun:', planets.find(p => p.id === 'sun'));
-  console.log('Moon:', planets.find(p => p.id === 'moon'));
-
-  // Calculate Lagna (Ascendant)
-  const lagna = await sweph.calculateLagna(
-    calculationDate,
-    { latitude: 27.7, longitude: 85.3, timezone: 5.75 },
-    { ayanamsa: AYANAMSA.LAHIRI }
-  );
-
-  console.log('Ascendant:', lagna.longitude, 'in', sweph.RASHIS[lagna.rasi]);
-
-  // Calculate Moon Phase
-  const moonPhase = await sweph.calculateMoonPhase(calculationDate);
-  console.log('Moon Phase:', moonPhase.phaseName, `(${Math.round(moonPhase.illumination * 100)}%)`);
-}
-
-main();
-```
-
----
-
-## 📦 API Reference
-
-### `createSweph(options?): Promise<SwephInstance>`
-
-Creates an auto-initialized Swiss Ephemeris instance.
-
-```typescript
-const sweph = await createSweph({
-  ephePath: '/path/to/ephemeris', // Optional: custom ephemeris path
-  preWarm: true, // Optional: pre-calculate to warm cache
-});
-```
-
-### SwephInstance Methods
-
-#### Planetary Calculations
-
-```typescript
-// All 9 Vedic planets
-const planets = await sweph.calculatePlanets(date, {
-  ayanamsa: AYANAMSA.LAHIRI, // Lahiri
-  timezone: 0, // UTC
+const planets = await sweph.calculatePlanets(new Date(), {
+  ayanamsa: AYANAMSA.LAHIRI,
+  timezone: 5.75, // Nepal
 });
 
-// Single planet (0=Sun, 1=Moon, 2=Mars, etc.)
-const sun = await sweph.calculatePlanet(0, date, { ayanamsa: AYANAMSA.LAHIRI });
-
-// Rise, Set, Transit times
-const riseSet = await sweph.calculateRiseSet(0, date, {
-  latitude: 27.7,
-  longitude: 85.3,
-});
-```
-
-#### Lagna & Houses
-
-```typescript
 const lagna = await sweph.calculateLagna(
-  date,
-  { latitude: 27.7, longitude: 85.3 },
+  new Date(),
+  { latitude: 27.7, longitude: 85.3, timezone: 5.75 },
   { ayanamsa: AYANAMSA.LAHIRI }
 );
 
-console.log(lagna.longitude); // Ascendant in degrees
-console.log(lagna.rasi); // Ascendant sign (1-12)
-console.log(lagna.houses); // Array of 12 house cusps
-```
-
-#### Sun Calculations
-
-```typescript
-const date = new Date();
-const location = { latitude: 27.7, longitude: 85.3 };
-
-// Sunrise, Sunset, Solar Noon
-const sunTimes = await sweph.calculateSunTimes(date, location);
-
-// Solar Noon with altitude
-const noon = await sweph.calculateSolarNoon(date, location);
-
-// Sun path throughout the day
-const path = await sweph.calculateSunPath(date, location);
-```
-
-#### Moon Calculations
-
-```typescript
-const date = new Date();
-const location = { latitude: 27.7, longitude: 85.3 };
-
-// Moon data (position, rise/set, phase)
-const moonData = await sweph.calculateMoonData(date, location);
-
-// Current moon phase
-const phase = await sweph.calculateMoonPhase(date);
-console.log(phase.phaseName); // "Waxing Crescent", "Full Moon", etc.
-console.log(phase.illumination); // 0.0 to 1.0
-
-// Next moon phases
-const nextPhases = await sweph.calculateNextMoonPhases(date);
-console.log('Next New Moon:', nextPhases.newMoon);
-console.log('Next Full Moon:', nextPhases.fullMoon);
-```
-
-#### Utilities
-
-```typescript
-// Get ayanamsa value
-const ayanamsa = sweph.getAyanamsa(date, AYANAMSA.LAHIRI);
-
-// Convert to Julian Day
-const jd = sweph.dateToJulian(date);
-
-// Set ephemeris path
-sweph.setEphePath('/custom/path/to/ephe');
-```
-
-### Constants
-
-```typescript
-import { PLANETS, AYANAMSA, RASHIS, NAKSHATRAS } from '@af/sweph';
-
-// Planet IDs
-PLANETS.SUN;     // 0
-PLANETS.MOON;    // 1
-PLANETS.MARS;    // 4
-PLANETS.MERCURY; // 2
-PLANETS.JUPITER; // 5
-PLANETS.VENUS;   // 3
-PLANETS.SATURN;  // 6
-PLANETS.RAHU;    // 10
-PLANETS.KETU;    // 11
-
-// Ayanamsa types
-AYANAMSA.LAHIRI;       // 1 (default)
-AYANAMSA.KRISHNAMURTI; // 5
-AYANAMSA.RAMAN;        // 3
-
-// Rashi names
-RASHIS[1];  // "Aries"
-RASHIS[4];  // "Cancer"
-RASHIS[10]; // "Capricorn"
-
-// Nakshatra names
-NAKSHATRAS[1];  // "Ashwini"
-NAKSHATRAS[14]; // "Chitra"
-NAKSHATRAS[27]; // "Revati"
+console.log(lagna.longitude);           // Ascendant in degrees
+console.log(lagna.houses?.length);      // 12
 ```
 
 ---
 
-## 🏗️ Multi-Platform Architecture
+## Unified interface: engine-agnostic code
 
-| Package | Environment | Technology |
-|---------|-------------|------------|
-| `@af/sweph-node` | Node.js | Native C++ bindings |
-| `@af/sweph-wasm` | Browser | WebAssembly |
-| `@af/sweph-react-native` | Mobile | JSI/Turbo Modules |
-| `@af/sweph-core` | All | Shared TypeScript |
+Write once, run on any tier:
+
+```typescript
+import type { ICalculationEngine } from '@af/sweph-core';
+
+async function getSunPosition(engine: ICalculationEngine, date: Date) {
+  const planets = await engine.calculatePlanets(date, { ayanamsa: 1 });
+  return planets.find(p => p.id === 'sun');
+}
+
+// Works with any engine
+import { createJsonEngine } from '@af/sweph-json';
+import { LiteEngine } from '@af/sweph-lite';
+
+const jsonEngine = createJsonEngine({ loader: myLoader });
+const liteEngine = new LiteEngine();
+await liteEngine.initialize();
+
+const sunJson = await getSunPosition(jsonEngine, new Date());
+const sunLite = await getSunPosition(liteEngine, new Date());
+```
+
+Feature availability differs by engine — see [docs/architecture/OVERVIEW.md](docs/architecture/OVERVIEW.md) for the feature matrix.
 
 ---
 
-## 🚀 Serverless Deployment
+## Package exports
 
-### Vercel Deployment
+The root `@af/sweph` package exposes sub-path exports:
 
-@af/sweph is optimized for Vercel serverless functions. Here's the recommended setup:
-
-#### 1. Environment Variables
-```bash
-# In Vercel dashboard or vercel.json
-NODE_VERSION=20
-SWEPH_DISABLE_CACHE=false  # Enable caching for better performance
-```
-
-#### 2. Function Configuration
-```typescript
-// api/planets.ts
-import { createSweph } from '@af/sweph';
-
-export default async function handler(req, res) {
-  // Create optimized instance for serverless
-  const sweph = await createSweph({
-    serverlessMode: true,
-    enableCaching: true
-  });
-
-  const planets = await sweph.calculatePlanets(new Date());
-  res.status(200).json(planets);
-}
-```
-
-> [!IMPORTANT]
-> **Serverless Cold Starts**: In local development, the process stays alive. In Serverless (Vercel/Lambda), every request might be a new process. 
-> The `createSweph()` function above **automatically awaits initialization**. 
-> However, if you use legacy functions or internal helpers, you **MUST** call `await initializeSweph()` before any calculations.
-
-#### 3. Bundle Size Optimization
-```javascript
-// next.config.js
-module.exports = {
-  experimental: {
-    serverComponentsExternalPackages: ['@af/sweph']
-  },
-  webpack: (config) => {
-    // Exclude native binaries from bundling
-    config.externals.push({
-      '@af/sweph': '@af/sweph'
-    });
-    return config;
-  }
-};
-```
-
-### AWS Lambda Deployment
-
-For AWS Lambda, use the Node.js runtime with the provided prebuilds:
-
-```typescript
-// lambda/index.js
-const { createSweph } = require('@af/sweph');
-
-let swephInstance = null;
-
-exports.handler = async (event) => {
-  // Reuse instance across warm invocations
-  if (!swephInstance) {
-    swephInstance = await createSweph({
-      serverlessMode: true,
-      enableCaching: true
-    });
-  }
-
-  const result = await swephInstance.calculatePlanets(new Date());
-  return {
-    statusCode: 200,
-    body: JSON.stringify(result)
-  };
-};
-```
-
-### Netlify Functions
-
-```typescript
-// netlify/functions/planets.ts
-import { createSweph } from '@af/sweph';
-
-export async function handler(event) {
-  const sweph = await createSweph({
-    serverlessMode: true,
-    enableCaching: true
-  });
-
-  const planets = await sweph.calculatePlanets(new Date());
-  return {
-    statusCode: 200,
-    body: JSON.stringify(planets)
-  };
-}
-```
-
-### Serverless Performance Tips
-
-#### Memory Management
-```typescript
-// For memory-constrained environments
-const sweph = await createSweph({
-  serverlessMode: true,
-  enableCaching: false  // Disable caching to save memory
-});
-```
-
-#### Connection Pooling
-```typescript
-import { withSwephInstance, createServerlessSweph } from '@af/sweph';
-
-// Option 1: Automatic connection pooling
-export default async function handler(req, res) {
-  const result = await withSwephInstance(async (sweph) => {
-    return await sweph.calculatePlanets(new Date());
-  });
-  res.json(result);
-}
-
-// Option 2: Dedicated serverless instance
-let swephInstance = null;
-
-export default async function handler(req, res) {
-  if (!swephInstance) {
-    swephInstance = await createServerlessSweph();
-  }
-  const result = await swephInstance.calculatePlanets(new Date());
-  res.json(result);
-}
-```
-
-#### Cold Start Optimization
-```typescript
-// Pre-warm critical calculations
-const sweph = await createSweph({
-  preWarm: true,  // Slightly slower init, but faster first request
-  serverlessMode: true
-});
-```
-
-## 🐛 Troubleshooting
-
-### Module not found on Vercel
-
-Ensure pre-built binaries are installed:
-```bash
-ls node_modules/@af/sweph/packages/node/prebuilds/
-# Should show: linux-x64/, darwin-arm64/, etc.
-```
-
-> **📚 For detailed Next.js and Vercel configuration, see [docs/NEXTJS_VERCEL.md](docs/NEXTJS_VERCEL.md)**
-
-### Native module errors
-
-Set `NODE_VERSION=20` in your environment.
-
-### Memory issues in serverless
-
-Disable caching to reduce memory usage:
-```bash
-SWEPH_DISABLE_CACHE=true
-```
-
-Or in code:
-```typescript
-const sweph = await createSweph({
-  serverlessMode: true,
-  enableCaching: false
-});
-```
-
-### Bundle size issues
-
-Use dynamic imports for better tree shaking:
-```typescript
-const { createSweph } = await import('@af/sweph');
-```
-
-### Building Pre-built Binaries
-
-For production deployments, you can build native binaries for multiple Node.js versions:
-
-```bash
-cd packages/node
-
-# Build ALL versions (Node 18/20/22) for ALL platforms (requires Docker)
-pnpm prebuild:all
-
-# Build single platform
-pnpm prebuild:linux          # Linux x64
-pnpm prebuild:linux-arm64    # Linux ARM64 (Vercel/Lambda Graviton)
-
-# Copy macOS binary from local build
-pnpm copy:darwin-arm64       # macOS Apple Silicon
-pnpm copy:darwin-x64         # macOS Intel
-```
-
-The `prebuild:all` script creates binaries for:
-- **Node.js versions**: 18, 20, 22
-- **Platforms**: linux-x64, linux-arm64, darwin-arm64, darwin-x64
-
-> **💡 Tip**: Run the GitHub Actions workflow `Build Prebuilds` to automatically generate all binaries.
-
-## 📁 Project Structure & Templates
-
-Quick setup templates are available in the `templates/` directory:
-
-- `vercel-api.ts` - Vercel API routes (Pages Router & App Router)
-- `aws-lambda.ts` - AWS Lambda functions
-- `netlify-function.ts` - Netlify Functions
-- `nextjs-component.tsx` - Next.js client components
-
-## 🔧 Advanced Configuration
-
-### Environment Variables
-
-```bash
-# Disable caching in memory-constrained environments
-SWEPH_DISABLE_CACHE=true
-
-# Disable native module caching in serverless
-SWEPH_CACHE_MODULE=false
-
-# Set Node.js version for Vercel
-NODE_VERSION=20
-```
-
-### Custom Ephemeris Path
-
-```typescript
-const sweph = await createSweph({
-  ephePath: '/custom/path/to/ephemeris'
-});
-```
-
-### Platform-Specific Builds
-
-The library includes pre-built binaries for:
-- `linux-x64` (Vercel, AWS Lambda, most Linux servers)
-- `linux-arm64` (AWS Lambda Graviton, ARM64 Linux)
-- `darwin-arm64` (macOS M1/M2/M3)
-- `darwin-x64` (macOS Intel)
-- `win32-x64` (Windows x64)
+| Import | Content |
+|---|---|
+| `@af/sweph` or `@af/sweph/node` | Native C++ Node.js engine |
+| `@af/sweph/wasm` | Browser WASM engine |
+| `@af/sweph/lite` | Pure JS engine |
+| `@af/sweph/json` | Zero-native JSON engine |
+| `@af/sweph/core` | Shared types and interfaces only |
 
 ---
 
-## 🤝 Contributing
+## Documentation
+
+| Guide | Description |
+|---|---|
+| [docs/architecture/OVERVIEW.md](docs/architecture/OVERVIEW.md) | Tier system, feature matrix, engine-agnostic patterns |
+| [docs/usage/nodejs.md](docs/usage/nodejs.md) | Node.js native engine — full API reference |
+| [docs/usage/browser-wasm.md](docs/usage/browser-wasm.md) | Browser WASM — Next.js, Vite, CDN |
+| [docs/usage/react-native.md](docs/usage/react-native.md) | React Native / Expo setup |
+| [docs/usage/json-engine.md](docs/usage/json-engine.md) | JSON engine deep dive — data generation, bundling |
+| [docs/usage/serverless.md](docs/usage/serverless.md) | Vercel, Lambda, Netlify deployment |
+| [docs/SERVERLESS_TROUBLESHOOTING.md](docs/SERVERLESS_TROUBLESHOOTING.md) | Production crash modes and fixes |
+| [docs/NEXTJS_VERCEL.md](docs/NEXTJS_VERCEL.md) | Next.js + Vercel configuration guide |
+
+---
+
+## Contributing
 
 ```bash
 git clone https://github.com/astro-fusion/af-sweph
@@ -483,10 +224,12 @@ pnpm -r build
 pnpm -r test
 ```
 
-## 📄 License
+See [CONTRIBUTING.md](CONTRIBUTING.md) for code style, PR process, and branch conventions.
 
-MIT
+---
 
-## ❤️ Credits
+## License
 
-- [Swiss Ephemeris](https://www.astro.com/swisseph/) by Astrodienst AG
+MIT — see [LICENSE](LICENSE).
+
+Built on [Swiss Ephemeris](https://www.astro.com/swisseph/) by Astrodienst AG.

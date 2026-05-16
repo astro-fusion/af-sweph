@@ -66,10 +66,14 @@ function krishnamurti(jd) {
     // KP ayanamsa = Lahiri - 0.25° (approximate offset used by KP system)
     return lahiri(jd) - 0.25 + T * 0.000022;
 }
-/** B.V. Raman's ayanamsa */
+/**
+ * B.V. Raman's ayanamsa.
+ * Starting value at J2000: 22°27'59.36" ≈ 22.4665° (SE_SIDM_RAMAN reference epoch).
+ * Same precession rate as Lahiri but different zero-point → consistently ~1.4° less.
+ */
 function raman(jd) {
-    const T = T1900(jd);
-    return 22.4600 + T * (1.3968 + T * 0.0000326);
+    const T = T2000(jd);
+    return 22.4665 + T * (1.3960 + T * 0.0000326);
 }
 /** Sri Yukteshwar's ayanamsa */
 function yukteshwar(jd) {
