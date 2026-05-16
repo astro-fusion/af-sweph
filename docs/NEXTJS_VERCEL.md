@@ -1,212 +1,277 @@
 # Using @af/sweph with Next.js on Vercel
 
-This guide explains how to correctly configure @af/sweph for deployment on Vercel's serverless platform.
+> Last updated: 2026-05-16
+> Covers: Next.js 14/15/16 (App Router), pnpm workspaces, Turbopack, Vercel prebuilt deploys
 
-## The Challenge
-
-Vercel's serverless functions have specific requirements for native Node.js modules:
-
-1. **Native binaries must be included in the bundle** - Next.js output file tracing must explicitly include the `.node` prebuilds
-2. **Symlinks don't work** - pnpm's symlinked node_modules may not be traced correctly
-3. **Platform-specific binaries** - The `linux-x64` prebuild must be available at runtime
-4. **Size Limits** - Vercel functions have a 250MB (unzipped) limit. Including too many binaries can crash the deployment.
-
-## 🧠 Technical Deep Dive: Why is this so hard?
-
-Deploying native modules (C++ ad dons) to Serverless is notoriously difficult. Here is why:
-
-### 1. The ABI Nightmare (Node.js Version Mismatch)
-Native modules are compiled against a specific Node.js **ABI (Application Binary Interface)**.
-- If you build locally on Node 22, the binary expects Node 22 ABI.
-- If Vercel runs on Node 20, the binary **will crash** with `Error: The module was compiled against a different Node.js version`.
-- **Solution:** We explicitly ship prebuilt binaries for multiple Node versions and platforms (`linux-x64`, `darwin-arm64`) and load the correct one at runtime.
-
-### 2. The "GLIBC" Trap
-Linux isn't just "Linux".
-- Local Linux (Ubuntu/Debian) might have a newer `glibc`.
-- Vercel/AWS Lambda often run on Amazon Linux 2, which has an older `glibc`.
-- **Result:** `Error: /lib64/libc.so.6: version 'GLIBC_2.28' not found`.
-- **Solution:** Our prebuilds are compiled in a Docker container that mimics the Vercel execution environment.
-
-### 3. "Sloppy Code" Pitfalls
-Common patterns that break in Serverless:
-- ❌ **Relative Paths:** `path.join(__dirname, './bin')` often points to the wrong place because files are moved during bundling.
-- ❌ **Assuming Persistence:** Saving a file to disk? It's gone on the next request.
-- ❌ **Lazy Error Handling:** Swallowing "Module Not Found" errors leads to "silent failures" where the app works but returns wrong data (or purely mathematical approximations).
-
-### 4. The 250MB Limit
-Vercel enforces a strict 250MB unzipped limit per function.
-- **The Problem:** Including ALL prebuilds (Windows, Mac, Linux x Node 18, 20, 22) exceeds 250MB.
-- **The Fix:** We use "Tiered Loading":
-    1.  **Prefer WASM:** (Coming soon) Light, consistent, safe.
-    2.  **Specific Prebuilds:** Only bundle `linux-x64` for production.
+This guide documents the complete set of issues we discovered deploying `@af/sweph` — a native
+Node.js + WASM package — into Vercel's serverless Lambda environment, and the exact fixes that
+made it work reliably. Everything here was learned the hard way through real production failures.
 
 ---
 
-## Required Configuration
+## Why this is hard — the full picture
 
-### 1. next.config.js
+Deploying a native C++ addon (or any package mixing `.node` prebuilds with complex sub-path
+exports) into Vercel serverless involves **four independent failure modes**, each one silent
+enough to pass your build but crash at runtime.
 
-Add the prebuilds to `outputFileTracingIncludes`:
+### Failure 1: pnpm symlinks are not deployed
 
-```javascript
-// next.config.js
-const path = require('path');
+pnpm stores every package at a content-addressable path in its virtual store:
 
-/** @type {import('next').NextConfig} */
-const config = {
-  // Enable standalone output for Vercel
-  output: 'standalone',
-  
-  // Set tracing root for monorepos
-  outputFileTracingRoot: path.join(__dirname, '../../'),
-  
-  // Mark native modules as external (prevents webpack bundling)
-  serverExternalPackages: [
-    '@af/sweph',
-    'node-gyp-build',
-  ],
-  
-  // CRITICAL: Include prebuilds in the serverless bundle
-  outputFileTracingIncludes: {
-    '/**/*': [
-      // Standard location
-      '../../node_modules/@af/sweph/packages/node/prebuilds/**/*',
-      // pnpm store location (for pnpm users)
-      '../../node_modules/.pnpm/**/node_modules/@af/sweph/packages/node/prebuilds/**/*',
-      // node-gyp-build helper
-      '../../node_modules/node-gyp-build/**/*',
-    ],
-  },
-  
-  // Transpile the core package for SSR
-  transpilePackages: [
-    '@af/sweph-core',
-  ],
-};
-
-module.exports = config;
+```
+node_modules/.pnpm/@af+sweph@{url-encoded-specifier}/node_modules/@af/sweph/
 ```
 
-### 2. For pnpm Monorepos (Recommended)
+And creates a symlink at the canonical location:
 
-pnpm stores packages in a content-addressable store with symlinks. To ensure reliable tracing, copy prebuilds to your app directory:
-
-```javascript
-// scripts/setup-prebuilds.js
-const fs = require('fs');
-const path = require('path');
-
-function copyPrebuildsToApp() {
-  const rootDir = path.resolve(__dirname, '..');
-  const nodeModules = path.join(rootDir, 'node_modules');
-  
-  // Find prebuilds in @af/sweph
-  const source = path.join(nodeModules, '@af/sweph/packages/node/prebuilds');
-  const target = path.join(rootDir, 'lib/sweph-prebuilds');
-  
-  if (fs.existsSync(source)) {
-    fs.cpSync(source, target, { recursive: true });
-    console.log('✅ Copied SWEPH prebuilds to', target);
-  }
-}
-
-copyPrebuildsToApp();
+```
+node_modules/@af/sweph  →  node_modules/.pnpm/.../@af/sweph/
 ```
 
-Add to package.json:
+When Next.js traces your output files, it follows the symlink and records the **real store
+path** in the NFT trace. That store path becomes the `filePathMap` key in Vercel's
+`.vc-config.json`. The destination path also mirrors the store path, so the file lands in your
+Lambda at:
+
+```
+/var/task/node_modules/.pnpm/.../node_modules/@af/sweph/packages/node/dist/index.js
+```
+
+Your code does `require('@af/sweph')`. Node.js resolves that to
+`/var/task/node_modules/@af/sweph/`. That symlink **does not exist in the Lambda** — Vercel
+never deploys symlinks. Module not found.
+
+**Fix:** After `vercel build`, post-process the `.vc-config.json` `filePathMap` to re-point
+all pnpm store paths to the canonical `node_modules/@af/sweph/` destination.
+
+### Failure 2: `outputFileTracingExcludes` silently overrides `outputFileTracingIncludes`
+
+This is documented nowhere clearly in the Next.js docs. If `@af/sweph` appears in
+`outputFileTracingExcludes` under ANY key — including the global `'*'` key — it is stripped
+from EVERY function trace. `outputFileTracingIncludes` cannot override this. There is no
+warning. The build succeeds, the deploy succeeds, and `kundali`/`panchanga` crash at runtime.
+
+**Rule:** `@af/sweph`, `@af+sweph`, `swisseph`, and `node-gyp-build` must NEVER appear in
+`outputFileTracingExcludes`.
+
+Also note: in `outputFileTracingEXCLUDES`, use `**/` prefix. In `outputFileTracingINCludes`,
+use `../../../` prefix (relative to the app directory). They are resolved differently.
+
+### Failure 3: Turbopack hashed external aliases (Next.js 15+)
+
+Next.js 15+ defaults to Turbopack for production builds. When `@af/sweph` is in
+`serverExternalPackages`, Turbopack externalizes it using a deterministic 16-hex hash:
+
+```javascript
+// In compiled .next/server/chunks/ssr/*.js
+require('@af/sweph-2d7ea1f7959600e6')  // Not '@af/sweph' — the hash alias
+```
+
+Turbopack creates a physical directory at:
+
+```
+.next/node_modules/@af/sweph-2d7ea1f7959600e6/
+```
+
+Next.js's output file tracer (NFT) records this as a **bare directory entry** in the `.nft.json`:
+
 ```json
-{
-  "scripts": {
-    "postinstall": "node scripts/setup-prebuilds.js",
-    "prebuild": "node scripts/setup-prebuilds.js"
-  }
-}
+{ "files": ["../node_modules/@af/sweph-2d7ea1f7959600e6"] }
 ```
 
-Then update next.config.js to include the local copy:
+Vercel's build step does **not expand bare directory entries** into individual file entries in
+`filePathMap`. The entire hashed directory is never uploaded to the Lambda. At runtime:
+
+```
+Error: Cannot find module '@af/sweph-2d7ea1f7959600e6'
+```
+
+**Fix (Layer 1):** In `outputFileTracingIncludes`, force each file inside the hashed directory
+to be individually traced:
+
 ```javascript
 outputFileTracingIncludes: {
   '/**/*': [
-    './lib/sweph-prebuilds/**/*',  // Local copy - most reliable
-    // ... other paths
+    // Force individual file entries for the Turbopack-hashed shim directory.
+    // Without this, NFT records a bare directory pointer which Vercel skips.
+    '.next/node_modules/@af/sweph*/**/*',
   ],
 },
 ```
 
-### 3. Verifying the Fix
+**Fix (Layer 2 — belt and suspenders):** In a post-build script, inject the hashed package's
+files as individual `filePathMap` entries in every `.vc-config.json`. Create a small `index.js`
+shim that re-exports from the canonical `node_modules/@af/sweph`:
 
-After building, check that prebuilds are included:
-
-```bash
-pnpm build
-
-# Verify prebuilds in standalone output
-find .next/standalone -name "swisseph.node" -type f
+```javascript
+// .vercel/_af_sweph_shim_{hash}/index.js
+const path = require('path');
+module.exports = require(path.resolve(__dirname, '../../../../../../..', 'node_modules/@af/sweph'));
 ```
 
-Expected output:
+### Failure 4: The ENOENT conflict between directory pointer and shim files
+
+This is the most subtle failure. Even if you correctly inject shim files (Fix Layer 2 above),
+you will still get an `ENOENT` from `vercel deploy --prebuilt` if the NFT bare directory
+pointer was NOT pruned from the `filePathMap`.
+
+The conflict looks like this:
+
+```json
+// filePathMap has BOTH:
+"apps/web/app/.next/node_modules/@af/sweph-{hash}": "...",  // raw directory pointer (from NFT)
+"/path/shim/index.js": "apps/web/app/.next/node_modules/@af/sweph-{hash}/index.js"  // our shim
 ```
-.next/standalone/node_modules/@af/sweph/packages/node/prebuilds/linux-x64/swisseph.node
-```
 
-## Common Errors
+When Vercel CLI builds the upload manifest, it calls `lstat` on every key. The directory key
+resolves to a real directory, but then it tries to `lstat` `index.js` inside it — which is
+NOT a real file in that directory (the directory was a Turbopack pointer-only stub). ENOENT.
 
-### Error: "No prebuild found for linux-x64"
+**Fix:** When injecting shim file entries, also prune the raw directory pointer from the
+`filePathMap`. The shim files must be the **only** entries for the hashed package — never both.
 
-**Cause:** Next.js didn't include the native binary in the serverless bundle.
-
-**Solution:**
-1. Ensure `outputFileTracingIncludes` is correctly configured
-2. For pnpm: copy prebuilds to a local directory as shown above
-3. Rebuild and verify the binary is in `.next/standalone`
-
-### Error: "Swiss Ephemeris module not initialized"
-
-**Cause:** `initializeSweph()` wasn't called before using calculation functions.
-
-**Solution:**
-```typescript
-import { initializeSweph, calculatePlanets } from '@af/sweph';
-
-async function calculate() {
-  await initializeSweph();  // Call ONCE at startup
-  const planets = await calculatePlanets(date, location);
+```javascript
+// In your filePathMap post-processor:
+const filteredMap = {};
+for (const [key, value] of Object.entries(filePathMap)) {
+  // Skip bare hashed-sweph directory pointers — our shims handle these
+  if (key.includes('sweph-') && /-[0-9a-f]{16}/.test(key) && !key.includes('.js')) {
+    continue; // prune the raw directory entry
+  }
+  filteredMap[key] = value;
 }
 ```
 
-## Environment Variables
+---
 
-For serverless environments with memory constraints:
+## Required Configuration (Correct)
 
-```bash
-# Disable module caching to reduce memory usage
-SWEPH_CACHE_MODULE=false
+### next.config.mjs
+
+```javascript
+const nextConfig = {
+  // Mark as external to prevent webpack/Turbopack from bundling it
+  serverExternalPackages: ['@af/sweph', 'node-gyp-build'],
+
+  outputFileTracingIncludes: {
+    '/**/*': [
+      // Include the package itself (follows pnpm symlink during tracing)
+      '../../../node_modules/@af/sweph/**/*',
+      // Also include the pnpm store path directly (symlinks are not deployed)
+      '**/node_modules/.pnpm/@af+sweph@*/**/*',
+      // node-gyp-build is needed to load prebuilds at runtime
+      '**/node_modules/node-gyp-build/**/*',
+      // CRITICAL for Turbopack: force individual file entries for hashed shim directory.
+      // Without this, NFT records a bare directory pointer which Vercel never expands.
+      '.next/node_modules/@af/sweph*/**/*',
+    ],
+  },
+
+  // NEVER put @af/sweph here — excludes silently override includes, no warnings
+  // outputFileTracingExcludes: { ... }  // @af/sweph must NOT appear here
+};
 ```
 
-## Platform Support
+### pnpm Monorepo: Vercel Deploy Post-Processor
 
-| Platform | Status | Notes |
-|----------|--------|-------|
-| `linux-x64` | ✅ Supported | Vercel, AWS Lambda |
-| `linux-arm64` | ✅ Supported | AWS Graviton |
-| `darwin-arm64` | ✅ Supported | macOS M1/M2/M3 |
-| `darwin-x64` | ✅ Supported | macOS Intel |
-| `win32-x64` | ✅ Supported | Windows |
+For pnpm monorepos using prebuilt Vercel deploys, you need a post-build script to fix the
+filePathMaps. The core logic is:
 
-## Troubleshooting
+```javascript
+// 1. Re-map pnpm store paths to canonical node_modules/@af/sweph/ destinations
+for (const [key, value] of Object.entries(filePathMap)) {
+  if (value.includes('node_modules/.pnpm/') && value.includes('@af/sweph')) {
+    // Replace pnpm store dest with canonical dest
+    const canonicalDest = value.replace(/node_modules\/.pnpm\/.+\/node_modules\/(@af\/sweph\/.+)/, 'node_modules/$1');
+    filePathMap[key] = canonicalDest;
+  }
+}
 
-1. **Check prebuilds exist in node_modules:**
-   ```bash
-   ls -la node_modules/@af/sweph/packages/node/prebuilds/linux-x64/
-   ```
+// 2. Prune hashed Turbopack directory pointers (bare dirs, no file extension)
+for (const key of Object.keys(filePathMap)) {
+  if (key.includes('sweph-') && /-[0-9a-f]{16}/.test(key) && !key.match(/\.\w+$/)) {
+    delete filePathMap[key];
+  }
+}
 
-2. **Check build includes prebuilds:**
-   ```bash
-   find .next/standalone -name "*.node" | grep swisseph
-   ```
+// 3. Inject shim files for the hashed alias
+// Create a shim index.js that re-exports from the canonical package
+// and add it to filePathMap with dest = apps/web/app/.next/node_modules/@af/sweph-{hash}/index.js
+```
 
-3. **Enable verbose logging:**
-   ```bash
-   BUILD_LOG_LEVEL=debug pnpm build
-   ```
+---
+
+## Verification
+
+After your build + post-processing, verify before deploying:
+
+```bash
+# 1. Check that @af/sweph files land at the canonical Lambda path (not pnpm store path)
+cat .vercel/output/functions/\[locale\]/kundali.func/.vc-config.json \
+  | python3 -c "import json,sys; d=json.load(sys.stdin)['filePathMap']; \
+    [print(v) for v in d.values() if 'sweph' in v and 'pnpm' not in v]"
+# Expected: lines like node_modules/@af/sweph/packages/node/dist/index.js
+
+# 2. Check that NO pnpm store paths remain as sweph destinations
+cat .vercel/output/functions/\[locale\]/kundali.func/.vc-config.json \
+  | python3 -c "import json,sys; d=json.load(sys.stdin)['filePathMap']; \
+    pnpm=[v for v in d.values() if '.pnpm' in v and 'sweph' in v]; \
+    print('FAIL: pnpm store paths present' if pnpm else 'PASS: no pnpm store paths')"
+
+# 3. Check that the shim files exist on disk (not just in filePathMap)
+ls .vercel/_af_sweph_shim_*/index.js
+
+# 4. Check that no bare hashed-sweph directory pointers remain in filePathMap
+cat .vercel/output/functions/\[locale\]/kundali.func/.vc-config.json \
+  | python3 -c "import json,sys,re; d=json.load(sys.stdin)['filePathMap']; \
+    dirs=[k for k in d.keys() if 'sweph-' in k and re.search(r'-[0-9a-f]{16}$', k)]; \
+    print('FAIL: bare dir entries present:', dirs if dirs else 'PASS')"
+```
+
+---
+
+## Common Errors and Their Root Causes
+
+| Error | Root Cause | Fix |
+|-------|-----------|-----|
+| `Cannot find package '@af/sweph'` at runtime | pnpm symlink not deployed; file landed at pnpm store path, not `node_modules/@af/sweph/` | Re-map filePathMap dest to canonical path |
+| `Cannot find module '@af/sweph-{hash}'` | Turbopack hashed alias; shim directory never uploaded (bare dir pointer) | Add `.next/node_modules/@af/sweph*/**/*` to `outputFileTracingIncludes` + inject shim |
+| `ENOENT: lstat .../sweph-{hash}/index.js` | Conflicting entries: both the raw directory pointer AND the shim in filePathMap | Prune the raw directory pointer when injecting shims |
+| `@af/sweph` missing after `vercel build` but was there before | It was added to `outputFileTracingExcludes['*']` (silently strips everything) | Remove from excludes entirely — never add it there |
+| Module works in dev but crashes in prod | `sweph-` in excludes only in production build config, or pnpm symlink followed during dev but not in Lambda | Use the same `serverExternalPackages` + `outputFileTracingIncludes` in all environments |
+| `Error: The module was compiled against a different Node.js version` | Binary is darwin/win32 build, not linux-x64 | Ensure only linux-x64 prebuilds are included in the function trace |
+
+---
+
+## How the Hashing Works (Turbopack Internals)
+
+The hash (`2d7ea1f7959600e6`) is derived from the package specifier in the pnpm lockfile. It
+is deterministic and changes only when `@af/sweph` is upgraded or the lockfile is regenerated.
+Your code never sees this hash — you still write `import { ... } from '@af/sweph'`. Turbopack
+rewrites the compiled output internally after tracing.
+
+The hash can be discovered by inspecting the compiled server chunks:
+
+```bash
+grep -r "sweph-[0-9a-f]\{16\}" .next/server/chunks/ | head -n 1
+# Output: ...require('@af/sweph-2d7ea1f7959600e6')...
+```
+
+Or by listing the hashed directory:
+
+```bash
+ls .next/node_modules/ | grep sweph
+# Output: @af/sweph-2d7ea1f7959600e6
+```
+
+---
+
+## Summary: The Four Rules
+
+1. Put `@af/sweph` in `serverExternalPackages`. Never bundle it.
+2. Add `.next/node_modules/@af/sweph*/**/*` to `outputFileTracingIncludes`. Never put it in `outputFileTracingExcludes`.
+3. Post-process `.vc-config.json` filePathMaps to re-map pnpm store dest paths to canonical `node_modules/@af/sweph/`.
+4. When injecting Turbopack shims for the hashed alias, prune the raw directory pointer. Shims and directory pointers must never coexist for the same package.
+
+Following all four rules produces a clean, repeatable Vercel deployment.
