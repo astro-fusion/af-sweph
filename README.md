@@ -154,6 +154,26 @@ const lagna = await sweph.calculateLagna(
 console.log(lagna.longitude);           // Ascendant in degrees
 console.log(lagna.houses?.length);      // 12
 ```
+### React Native engine (JSI Turbo Module)
+
+```typescript
+import { createSweph } from '@af/sweph-react-native';
+
+const sweph = await createSweph(); // uses bundled Swiss Ephemeris data
+
+const date = new Date('1990-07-15T10:30:00Z');
+const location = { latitude: 28.6139, longitude: 77.2090 }; // New Delhi
+
+const planets = await sweph.calculatePlanets(date, { ayanamsa: 1 }); // Lahiri
+const lagna  = await sweph.calculateLagna(date, location, { ayanamsa: 1 });
+const moon   = await sweph.calculateMoonPhase(date);
+
+console.log(planets.find(p => p.id === 'sun')?.longitude);  // e.g. 118.4
+console.log(lagna?.rasi);                                     // 1–12
+console.log(moon.phaseName);                                 // "Waxing Gibbous"
+```
+
+Note: For Expo managed workflow, use `@af/sweph-json` instead.
 
 ---
 
