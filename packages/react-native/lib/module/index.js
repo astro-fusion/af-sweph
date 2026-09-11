@@ -143,6 +143,29 @@ export async function createSweph(options) {
         transitDistance: 0
       };
     },
+    calculateLagna(date, location, options) {
+      const jd = dateToJulian(date);
+      const ayanamsa = options?.ayanamsa ?? 1;
+      const houseSystem = options?.houseSystem ? options.houseSystem.charCodeAt(0) : 'P'.charCodeAt(0);
+
+      // Set sidereal mode
+      adapter.swe_set_sid_mode(ayanamsa, 0, 0);
+      const result = adapter.swe_houses(jd, location.latitude, location.longitude, houseSystem);
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+      const ayanamsaVal = adapter.swe_get_ayanamsa(jd);
+
+      // Apply ayanamsa correction (Tropical -> Sidereal)
+      const ascendant = normalizeLongitude(result.ascmc[0] - ayanamsaVal);
+      const houses = result.cusp.slice(1, 13).map(c => normalizeLongitude(c - ayanamsaVal));
+      return {
+        longitude: ascendant,
+        rasi: getRashi(ascendant),
+        rasiDegree: getRashiDegree(ascendant),
+        houses
+      };
+    },
     getAyanamsa(date, ayanamsaType = 1) {
       const jd = dateToJulian(date);
       adapter.swe_set_sid_mode(ayanamsaType, 0, 0);
