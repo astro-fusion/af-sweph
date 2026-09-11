@@ -9,7 +9,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SWISSEPH_DIR="$PROJECT_DIR/node_modules/swisseph-v2/deps/swisseph"
-OUTPUT_DIR="$PROJECT_DIR/prebuilds/wasm"
+REPO_ROOT="$(dirname "$(dirname "$PROJECT_DIR")")"
+if [ ! -d "$SWISSEPH_DIR" ]; then
+    SWISSEPH_DIR="$(find "$REPO_ROOT/node_modules" -path "*/deps/swisseph" 2>/dev/null | head -n 1)"
+fi
+OUTPUT_DIR="$PROJECT_DIR/wasm"
 
 echo "🔨 Building WASM prebuild using Docker..."
 echo "   Project directory: $PROJECT_DIR"
@@ -21,7 +25,7 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Check if swisseph source is available
-if [ ! -d "$SWISSEPH_DIR" ]; then
+if [ -z "$SWISSEPH_DIR" ] || [ ! -d "$SWISSEPH_DIR" ]; then
     echo "❌ swisseph source not found at $SWISSEPH_DIR"
     echo "   Please run 'pnpm install' first or ensure swisseph-v2 is installed"
     exit 1
@@ -42,8 +46,8 @@ echo "🐳 Starting Docker build..."
 # -s EXPORTED_RUNTIME_METHODS: Emscripten runtime helpers to expose
 
 # Define JSON arrays as single-line strings for command line
-EXPORTED_FUNCTIONS_JSON='["_swe_julday","_swe_date_conversion","_swe_set_ephe_path","_swe_set_sid_mode","_swe_get_ayanamsa","_swe_get_ayanamsa_ut","_swe_calc_ut","_swe_fixstar2_ut","_swe_rise_trans","_swe_azalt","_swe_version","_swe_set_topo"]'
-EXPORTED_RUNTIME_METHODS_JSON='["ccall","cwrap","FS","stringToUTF8","UTF8ToString","setValue","getValue","lengthBytesUTF8"]'
+EXPORTED_FUNCTIONS_JSON='["_swe_julday","_swe_date_conversion","_swe_set_ephe_path","_swe_set_sid_mode","_swe_get_ayanamsa","_swe_get_ayanamsa_ut","_swe_calc_ut","_swe_fixstar2_ut","_swe_rise_trans","_swe_azalt","_swe_version","_swe_set_topo","_swe_houses","_malloc","_free"]'
+EXPORTED_RUNTIME_METHODS_JSON='["ccall","cwrap","FS","stringToUTF8","UTF8ToString","setValue","getValue","lengthBytesUTF8","stackAlloc","stackSave","stackRestore","HEAPU8","HEAPF64"]'
 
 # Note: We map the source directory to /src in container
 # and output directory to /out
@@ -67,6 +71,10 @@ if [ -f "$OUTPUT_DIR/swisseph.wasm" ]; then
     echo "✅ WASM build successful!"
     echo "   Output: $OUTPUT_DIR/swisseph.wasm"
     ls -lh "$OUTPUT_DIR/swisseph.wasm"
+    # Also sync to packages/node prebuilds if directory exists
+    if [ -d "$REPO_ROOT/packages/node/prebuilds/wasm" ]; then
+        cp "$OUTPUT_DIR/swisseph.js" "$OUTPUT_DIR/swisseph.wasm" "$REPO_ROOT/packages/node/prebuilds/wasm/"
+    fi
 else
     echo "❌ WASM build failed. Check output for details."
     exit 1
