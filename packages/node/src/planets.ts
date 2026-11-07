@@ -99,16 +99,22 @@ export function calculatePlanets(
   initializeSweph();
   const sweph = getNativeModule();
 
-  const { ayanamsa = 1, includeSpeed = true, location } = options;
+  const { ayanamsa = 1, includeSpeed = true, location, topocentric } = options;
 
   // Set sidereal mode
   sweph.swe_set_sid_mode(ayanamsa, 0, 0);
+
+  // Set topocentric observer location when requested
+  if (topocentric && location && typeof sweph.swe_set_topo === 'function') {
+    sweph.swe_set_topo(location.longitude, location.latitude, location.altitude || 0);
+  }
 
   const julianDay = dateToJulian(date);
   const resultPlanets: Planet[] = [];
 
   let calculationFlags = CALC_FLAGS.SIDEREAL | CALC_FLAGS.SWIEPH;
   if (includeSpeed) calculationFlags |= CALC_FLAGS.SPEED;
+  if (topocentric && location) calculationFlags |= CALC_FLAGS.TOPOCENTRIC;
 
   let rahuLongitude: number | null = null;
   let rahuSpeed: number | null = null;

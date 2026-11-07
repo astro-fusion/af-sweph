@@ -93,6 +93,8 @@ export interface CalculationOptions {
     ayanamsa?: number;
     houseSystem?: string;
     includeOuterPlanets?: boolean;
+    /** Enable topocentric position calculation (observer on Earth surface rather than geocenter) */
+    topocentric?: boolean;
 }
 
 /**
@@ -198,6 +200,19 @@ export interface ISwephAdapter {
         geolon: number,
         hsys: number
     ): HouseResult | { error: string };
+
+    // Topocentric coordinates
+    swe_set_topo?(geolon: number, geolat: number, geoalt: number): void;
+
+    // Delta T (ET - UT offset)
+    swe_deltat?(tjd_ut: number): number;
+
+    // Fixed star / Yogatara calculation
+    swe_fixstar_ut?(
+        starname: string,
+        tjd_ut: number,
+        iflag: number
+    ): CalcResult | { error: string };
 
     // Version info
     swe_version?(): string;

@@ -18,7 +18,7 @@ exports.PLANETS = {
     JUPITER: { id: types_1.PlanetId.JUPITER, name: 'Jupiter', sanskrit: 'Guru' },
     VENUS: { id: types_1.PlanetId.VENUS, name: 'Venus', sanskrit: 'Shukra' },
     SATURN: { id: types_1.PlanetId.SATURN, name: 'Saturn', sanskrit: 'Shani' },
-    RAHU: { id: types_1.PlanetId.TRUE_NODE, name: 'Rahu', sanskrit: 'Rahu' },
+    RAHU: { id: types_1.PlanetId.MEAN_NODE, name: 'Rahu', sanskrit: 'Rahu' }, // Vedic standard: Mean Node
     KETU: { id: -1, name: 'Ketu', sanskrit: 'Ketu' }, // Calculated as 180° from Rahu
 };
 /**
@@ -77,7 +77,7 @@ exports.CALC_FLAGS = {
     SWIEPH: 0x0002, // SEFLG_SWIEPH (use Swiss Ephemeris files)
     EQUATORIAL: 0x0800, // SEFLG_EQUATORIAL
     XYZ: 0x0200, // SEFLG_XYZ
-    TOPOCENTRIC: 0x2000, // SEFLG_TOPOCTR
+    TOPOCENTRIC: 0x8000, // SEFLG_TOPOCTR (32*1024)
 };
 /**
  * Moon phase names

@@ -47,10 +47,10 @@ interface WasmModule {
         tjd_ut: number, calc_flag: number, geoposPtr: number, atpress: number, attemp: number,
         xinPtr: number, xazPtr: number
     ): void;
-    _swe_azalt(
-        tjd_ut: number, calc_flag: number, geoposPtr: number, atpress: number, attemp: number,
-        xinPtr: number, xazPtr: number
-    ): void;
+    _swe_set_topo(geolon: number, geolat: number, geoalt: number): void;
+    _swe_fixstar2_ut(
+        starnamePtr: number, tjd_ut: number, iflag: number, xxPtr: number, serrPtr: number
+    ): number;
     _swe_houses(
         tjd_ut: number, geolat: number, geolon: number, hsys: number,
         cuspPtr: number, ascmcPtr: number
@@ -241,6 +241,41 @@ export class WasmAdapter implements ISwephAdapter {
         } finally {
             this.module._free(cuspPtr);
             this.module._free(ascmcPtr);
+        }
+    }
+
+    swe_set_topo(geolon: number, geolat: number, geoalt: number): void {
+        this.module._swe_set_topo(geolon, geolat, geoalt);
+    }
+
+    swe_fixstar_ut(starname: string, tjd_ut: number, iflag: number): CalcResult | { error: string } {
+        const serrPtr = this.module._malloc(256);
+        const xxPtr = this.module._malloc(6 * 8);
+
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(starname + '\0');
+        const starnamePtr = this.module._malloc(bytes.length);
+        this.module.HEAPU8.set(bytes, starnamePtr);
+
+        try {
+            const ret = this.module._swe_fixstar2_ut(starnamePtr, tjd_ut, iflag, xxPtr, serrPtr);
+
+            if (ret < 0) {
+                return { error: this.module.UTF8ToString(serrPtr) };
+            }
+
+            return {
+                longitude: this.module.getValue(xxPtr, 'double'),
+                latitude: this.module.getValue(xxPtr + 8, 'double'),
+                distance: this.module.getValue(xxPtr + 16, 'double'),
+                longitudeSpeed: this.module.getValue(xxPtr + 24, 'double'),
+                latitudeSpeed: this.module.getValue(xxPtr + 32, 'double'),
+                distanceSpeed: this.module.getValue(xxPtr + 40, 'double'),
+            };
+        } finally {
+            this.module._free(starnamePtr);
+            this.module._free(serrPtr);
+            this.module._free(xxPtr);
         }
     }
 

@@ -28,6 +28,17 @@ export interface Spec extends TurboModule {
         altitude: number;
     };
     swe_version(): string;
+    swe_set_topo(geolon: number, geolat: number, geoalt: number): void;
+    swe_deltat(tjd_ut: number): number;
+    swe_fixstar_ut(starname: string, tjd_ut: number, iflag: number): {
+        longitude: number;
+        latitude: number;
+        distance: number;
+        longitudeSpeed: number;
+        latitudeSpeed: number;
+        distanceSpeed: number;
+        error: string;
+    };
 }
 declare const _default: Spec;
 export default _default;

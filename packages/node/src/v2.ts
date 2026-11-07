@@ -80,8 +80,10 @@ export interface PlanetOptions {
   ayanamsa?: number;
   /** Timezone offset in hours (default: 0 = UTC) */
   timezone?: number;
-  /** Location for rise/set calculations */
+  /** Location for rise/set calculations and topocentric precision */
   location?: Location;
+  /** Enable topocentric position calculation (observer on Earth surface) */
+  topocentric?: boolean;
 }
 
 /**

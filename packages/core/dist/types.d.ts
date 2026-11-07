@@ -78,6 +78,8 @@ export interface CalculationOptions {
     ayanamsa?: number;
     houseSystem?: string;
     includeOuterPlanets?: boolean;
+    /** Enable topocentric position calculation (observer on Earth surface rather than geocenter) */
+    topocentric?: boolean;
 }
 /**
  * Sun times calculation result
@@ -144,6 +146,11 @@ export interface ISwephAdapter {
     };
     swe_azalt(tjd_ut: number, calc_flag: number, geopos: number[], atpress: number, attemp: number, xin: number[]): AzAltResult;
     swe_houses(tjd_ut: number, geolat: number, geolon: number, hsys: number): HouseResult | {
+        error: string;
+    };
+    swe_set_topo?(geolon: number, geolat: number, geoalt: number): void;
+    swe_deltat?(tjd_ut: number): number;
+    swe_fixstar_ut?(starname: string, tjd_ut: number, iflag: number): CalcResult | {
         error: string;
     };
     swe_version?(): string;

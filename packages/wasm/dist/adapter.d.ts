@@ -22,7 +22,8 @@ interface WasmModule {
     _swe_get_ayanamsa_ut(tjd_ut: number): number;
     _swe_rise_trans(tjd_ut: number, ipl: number, starnamePtr: number, epheflag: number, rsmi: number, geoposPtr: number, atpress: number, attemp: number, tretPtr: number, serrPtr: number): number;
     _swe_azalt(tjd_ut: number, calc_flag: number, geoposPtr: number, atpress: number, attemp: number, xinPtr: number, xazPtr: number): void;
-    _swe_azalt(tjd_ut: number, calc_flag: number, geoposPtr: number, atpress: number, attemp: number, xinPtr: number, xazPtr: number): void;
+    _swe_set_topo(geolon: number, geolat: number, geoalt: number): void;
+    _swe_fixstar2_ut(starnamePtr: number, tjd_ut: number, iflag: number, xxPtr: number, serrPtr: number): number;
     _swe_houses(tjd_ut: number, geolat: number, geolon: number, hsys: number, cuspPtr: number, ascmcPtr: number): number;
     _swe_version(ptr: number): void;
 }
@@ -50,6 +51,10 @@ export declare class WasmAdapter implements ISwephAdapter {
     };
     swe_azalt(tjd_ut: number, calc_flag: number, geopos: number[], atpress: number, attemp: number, xin: number[]): AzAltResult;
     swe_houses(tjd_ut: number, geolat: number, geolon: number, hsys: number): HouseResult | {
+        error: string;
+    };
+    swe_set_topo(geolon: number, geolat: number, geoalt: number): void;
+    swe_fixstar_ut(starname: string, tjd_ut: number, iflag: number): CalcResult | {
         error: string;
     };
     swe_version(): string;

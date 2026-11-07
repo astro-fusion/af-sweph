@@ -3,7 +3,7 @@
  *
  * Shared constants for Swiss Ephemeris calculations.
  */
-import { PlanetId, AyanamsaType, HouseSystem } from './types';
+import { AyanamsaType, HouseSystem, PlanetId } from './types';
 /**
  * Planet definitions for Vedic astrology (9 grahas)
  */
@@ -44,7 +44,7 @@ export declare const PLANETS: {
         readonly sanskrit: "Shani";
     };
     readonly RAHU: {
-        readonly id: PlanetId.TRUE_NODE;
+        readonly id: PlanetId.MEAN_NODE;
         readonly name: "Rahu";
         readonly sanskrit: "Rahu";
     };
@@ -86,7 +86,7 @@ export declare const VEDIC_PLANET_ORDER: readonly [{
     readonly name: "Saturn";
     readonly sanskrit: "Shani";
 }, {
-    readonly id: PlanetId.TRUE_NODE;
+    readonly id: PlanetId.MEAN_NODE;
     readonly name: "Rahu";
     readonly sanskrit: "Rahu";
 }, {
@@ -179,7 +179,7 @@ export declare const CALC_FLAGS: {
     readonly SWIEPH: 2;
     readonly EQUATORIAL: 2048;
     readonly XYZ: 512;
-    readonly TOPOCENTRIC: 8192;
+    readonly TOPOCENTRIC: 32768;
 };
 /**
  * Moon phase names
@@ -232,7 +232,7 @@ export declare const NAKSHATRAS: readonly [{
     readonly number: 6;
     readonly name: "Ardra";
     readonly lord: {
-        readonly id: PlanetId.TRUE_NODE;
+        readonly id: PlanetId.MEAN_NODE;
         readonly name: "Rahu";
         readonly sanskrit: "Rahu";
     };
@@ -304,7 +304,7 @@ export declare const NAKSHATRAS: readonly [{
     readonly number: 15;
     readonly name: "Swati";
     readonly lord: {
-        readonly id: PlanetId.TRUE_NODE;
+        readonly id: PlanetId.MEAN_NODE;
         readonly name: "Rahu";
         readonly sanskrit: "Rahu";
     };
@@ -376,7 +376,7 @@ export declare const NAKSHATRAS: readonly [{
     readonly number: 24;
     readonly name: "Shatabhisha";
     readonly lord: {
-        readonly id: PlanetId.TRUE_NODE;
+        readonly id: PlanetId.MEAN_NODE;
         readonly name: "Rahu";
         readonly sanskrit: "Rahu";
     };

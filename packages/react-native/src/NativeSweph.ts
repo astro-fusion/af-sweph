@@ -69,6 +69,27 @@ export interface Spec extends TurboModule {
 
     // Version
     swe_version(): string;
+
+    // Topocentric coordinates
+    swe_set_topo(geolon: number, geolat: number, geoalt: number): void;
+
+    // Delta T offset
+    swe_deltat(tjd_ut: number): number;
+
+    // Fixed star calculation
+    swe_fixstar_ut(
+        starname: string,
+        tjd_ut: number,
+        iflag: number
+    ): {
+        longitude: number;
+        latitude: number;
+        distance: number;
+        longitudeSpeed: number;
+        latitudeSpeed: number;
+        distanceSpeed: number;
+        error: string;
+    };
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('RNSweph');

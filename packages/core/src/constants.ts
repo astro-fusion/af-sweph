@@ -82,7 +82,7 @@ export const CALC_FLAGS = {
     SWIEPH: 0x0002,       // SEFLG_SWIEPH (use Swiss Ephemeris files)
     EQUATORIAL: 0x0800,   // SEFLG_EQUATORIAL
     XYZ: 0x0200,          // SEFLG_XYZ
-    TOPOCENTRIC: 0x2000,  // SEFLG_TOPOCTR
+    TOPOCENTRIC: 0x8000,  // SEFLG_TOPOCTR (32*1024)
 } as const;
 
 /**
