@@ -25,7 +25,7 @@ describe('@af/sweph Accuracy Verification', () => {
             // Force NATIVE tier explicitly
             const planets = await sweph.calculatePlanets(TEST_DATE, {
                 ayanamsa: AYANAMSA.LAHIRI,
-                // @ts-ignore - internal option for AstroCalculator
+                // @ts-expect-error - internal option for AstroCalculator
                 forceTier: 3 // CalculationTier.NATIVE
             });
 
@@ -56,7 +56,7 @@ describe('@af/sweph Accuracy Verification', () => {
         it('should maintain Ketu exactly 180 degrees from Rahu', async () => {
             const planets = await sweph.calculatePlanets(TEST_DATE, {
                 ayanamsa: AYANAMSA.LAHIRI,
-                // @ts-ignore
+                // @ts-expect-error - internal option for AstroCalculator
                 forceTier: 3
             });
             const rahu = planets.find(p => p.id === 'rahu');
@@ -77,7 +77,7 @@ describe('@af/sweph Accuracy Verification', () => {
         it('should calculate accurate sidereal Lagna (Ascendant)', async () => {
             const lagna = await sweph.calculateLagna(TEST_DATE, TEST_LOCATION, {
                 ayanamsa: AYANAMSA.LAHIRI,
-                // @ts-ignore
+                // @ts-expect-error - internal option for AstroCalculator
                 forceTier: 3
             });
 
@@ -89,7 +89,7 @@ describe('@af/sweph Accuracy Verification', () => {
         it('should return 12 house cusps', async () => {
             const lagna = await sweph.calculateLagna(TEST_DATE, TEST_LOCATION, {
                 ayanamsa: AYANAMSA.LAHIRI,
-                // @ts-ignore
+                // @ts-expect-error - internal option for AstroCalculator
                 forceTier: 3
             });
             expect(lagna.houses).toBeDefined();

@@ -122,7 +122,9 @@ export function calculatePlanets(
 
   const calculatedData: any[] = [];
 
-  const planetsToCalculate = [...VEDIC_PLANET_ORDER];
+  const planetsToCalculate: Array<{ readonly id: number; readonly name: string; readonly sanskrit: string }> = [
+    ...VEDIC_PLANET_ORDER,
+  ];
   if (options.includeOuterPlanets) {
     planetsToCalculate.push(...OUTER_PLANETS);
   }

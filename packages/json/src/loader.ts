@@ -104,7 +104,7 @@ export class EphemerisStore {
         nextKey: string
     ): Promise<{ row: DailyPlanetaryRow | null; nextRow: DailyPlanetaryRow | null }> {
         const cache = await this.loadYear(year);
-        let row = cache.get(dayKey) ?? null;
+        const row = cache.get(dayKey) ?? null;
         let nextRow = cache.get(nextKey) ?? null;
 
         // Cross-year boundary (Dec 31 → Jan 1)
